@@ -7,6 +7,7 @@ type FileMetadata struct {
 	ChunkSize   int64  `json:"chunk_size"`    // 每个分块大小
 	TotalChunks int    `json:"total_chunks"`  // 总分块数
 	Blake3Hash  string `json:"blake3_hash"`   // 文件完整 BLAKE3 哈希
+	AuthToken   string `json:"auth_token"`    // PIN 握手认证令牌
 }
 
 // TransferProgress 传输进度信息

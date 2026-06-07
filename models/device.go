@@ -10,6 +10,7 @@ type Device struct {
 	QUICPort        int       `json:"quic_port"`        // QUIC 传输端口
 	Platform        string    `json:"platform"`         // 平台信息 (Windows/macOS/Linux/Android/iOS)
 	CertFingerprint string    `json:"cert_fingerprint"` // QUIC 证书指纹（SHA-256）
+	AuthToken       string    `json:"auth_token,omitempty"` // 一次性认证令牌（仅在 PIN 响应中返回）
 	DiscoveryAt     time.Time `json:"discovery_at"`     // 发现时间
 }
 

@@ -24,6 +24,7 @@ type QUICFileReceiver struct {
 	listenAddr       string
 	saveDir          string
 	tlsConfig        *tls.Config
+	authToken        string           // PIN 握手认证令牌
 	listener         *quic.Listener
 	bytesReceived    atomic.Int64
 	totalBytes       int64
@@ -36,11 +37,12 @@ type QUICFileReceiver struct {
 }
 
 // NewQUICFileReceiver 创建文件接收器
-func NewQUICFileReceiver(listenPort int, saveDir string, tlsConfig *tls.Config) *QUICFileReceiver {
+func NewQUICFileReceiver(listenPort int, saveDir string, tlsConfig *tls.Config, authToken string) *QUICFileReceiver {
 	return &QUICFileReceiver{
 		listenAddr: fmt.Sprintf("0.0.0.0:%d", listenPort),
 		saveDir:    saveDir,
 		tlsConfig:  tlsConfig,
+		authToken:  authToken,
 	}
 }
 
@@ -162,6 +164,16 @@ func (r *QUICFileReceiver) receiveMetadata(ctx context.Context, conn quic.Connec
 	decoder := json.NewDecoder(stream)
 	if err := decoder.Decode(&r.metadata); err != nil {
 		return err
+	}
+
+	// S-1: 验证认证令牌
+	if r.authToken != "" && r.metadata.AuthToken != r.authToken {
+		return fmt.Errorf("认证失败：发送端令牌不匹配")
+	}
+
+	// S-2: 验证元数据边界
+	if err := validateMetadata(&r.metadata); err != nil {
+		return fmt.Errorf("元数据校验失败: %w", err)
 	}
 
 	r.totalBytes = r.metadata.FileSize
@@ -446,6 +458,28 @@ func (r *QUICFileReceiver) verifyHash() error {
 func (r *QUICFileReceiver) Stop() error {
 	if r.listener != nil {
 		return r.listener.Close()
+	}
+	return nil
+}
+
+// validateMetadata 校验文件元数据边界，防止恶意客户端触发 panic 或 OOM
+func validateMetadata(m *models.FileMetadata) error {
+	if m.ChunkSize <= 0 {
+		return fmt.Errorf("ChunkSize 必须大于 0，收到: %d", m.ChunkSize)
+	}
+	if m.TotalChunks <= 0 {
+		return fmt.Errorf("TotalChunks 必须大于 0，收到: %d", m.TotalChunks)
+	}
+	if m.FileSize < 0 {
+		return fmt.Errorf("FileSize 不能为负数，收到: %d", m.FileSize)
+	}
+	// 检查 TotalChunks 与 FileSize/ChunkSize 的一致性（允许 ±1 的余数差异）
+	expectedChunks := int((m.FileSize + m.ChunkSize - 1) / m.ChunkSize)
+	if m.TotalChunks > expectedChunks+1 {
+		return fmt.Errorf("TotalChunks (%d) 与文件大小不匹配，预期约 %d", m.TotalChunks, expectedChunks)
+	}
+	if m.TotalChunks > 1<<24 { // 16M chunks max
+		return fmt.Errorf("TotalChunks 过大: %d (上限 %d)", m.TotalChunks, 1<<24)
 	}
 	return nil
 }

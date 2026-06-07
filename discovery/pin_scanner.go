@@ -43,6 +43,7 @@ func NewPINReceiver(deviceName string, quicPort int, certFingerprint string) (*P
 
 	pin := GeneratePIN()
 	sessionSalt := GenerateDeviceID()
+	authToken := GenerateDeviceID() // 一次性认证令牌
 
 	device := models.Device{
 		ID:              GenerateDeviceID(),
@@ -51,6 +52,7 @@ func NewPINReceiver(deviceName string, quicPort int, certFingerprint string) (*P
 		QUICPort:        quicPort,
 		Platform:        runtime.GOOS,
 		CertFingerprint: certFingerprint,
+		AuthToken:       authToken,
 		DiscoveryAt:     time.Now(),
 	}
 
@@ -63,6 +65,13 @@ func NewPINReceiver(deviceName string, quicPort int, certFingerprint string) (*P
 		ctx:         ctx,
 		cancel:      cancel,
 	}, nil
+}
+
+// GetAuthToken 获取一次性认证令牌
+func (r *PINReceiver) GetAuthToken() string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.device.AuthToken
 }
 
 // GetPIN 获取生成的 PIN 码

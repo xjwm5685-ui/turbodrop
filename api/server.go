@@ -38,6 +38,9 @@ const (
 	maxUploadBodyBytes int64 = 1 << 30
 )
 
+// allowedWebHost 当前配置的 web 主机地址，用于 CORS/Origin 校验
+var allowedWebHost string
+
 // Server API 服务器
 type Server struct {
 	hub              *Hub
@@ -160,6 +163,7 @@ func NewServerWithConfig(cfg AppConfig) *Server {
 	}
 
 	s.setupRoutes()
+	allowedWebHost = cfg.WebHost
 	return s
 }
 
@@ -236,8 +240,13 @@ func (s *Server) Start() error {
 	}
 
 	s.httpServer = &http.Server{
-		Addr:    cfg.ListenAddr(),
-		Handler: s.router,
+		Addr:              cfg.ListenAddr(),
+		Handler:           s.router,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       60 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       120 * time.Second,
+		MaxHeaderBytes:    1 << 20, // 1 MB
 	}
 
 	err := s.httpServer.ListenAndServe()
@@ -356,6 +365,11 @@ func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusBadRequest, "解析上传请求失败: "+err.Error())
 		return
 	}
+	defer func() {
+		if r.MultipartForm != nil {
+			r.MultipartForm.RemoveAll()
+		}
+	}()
 
 	file, header, err := r.FormFile("file")
 	if err != nil {
@@ -424,7 +438,7 @@ func (s *Server) handleReceive(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, "创建接收端失败: "+err.Error())
 		return
 	}
-	fileReceiver := transfer.NewQUICFileReceiver(cfg.QUICPort, cfg.SaveDir, tlsConfig)
+	fileReceiver := transfer.NewQUICFileReceiver(cfg.QUICPort, cfg.SaveDir, tlsConfig, receiver.GetAuthToken())
 	sessionCtx, cancel := context.WithCancel(s.baseCtx)
 	session := &receiveSession{
 		cancel:       cancel,
@@ -648,6 +662,7 @@ func (s *Server) setConfig(cfg AppConfig) {
 	s.listenAddr = cfg.ListenAddr()
 	s.deviceName = cfg.DeviceName
 	s.quicPort = cfg.QUICPort
+	allowedWebHost = cfg.WebHost
 }
 
 func (s *Server) normalizeSendItems(req SendRequest) ([]SendFileItem, error) {
@@ -703,6 +718,7 @@ func (s *Server) sendSingleFile(ctx context.Context, pin string, item SendFileIt
 	fileSender := transfer.NewQUICFileSender(item.FilePath, device.IP, device.QUICPort)
 	fileSender.SetDisplayName(item.FileName)
 	fileSender.SetExpectedCertFingerprint(device.CertFingerprint)
+	fileSender.SetAuthToken(device.AuthToken)
 
 	progressCtx, cancelProgress := context.WithCancel(ctx)
 	defer cancelProgress()
@@ -827,6 +843,10 @@ func isAllowedOrigin(origin string) bool {
 	case "localhost", "127.0.0.1", "::1":
 		return true
 	default:
+		// 允许配置的 web_host
+		if allowedWebHost != "" && host == strings.ToLower(allowedWebHost) {
+			return true
+		}
 		return false
 	}
 }

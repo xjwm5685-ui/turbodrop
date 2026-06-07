@@ -22,6 +22,7 @@ type QUICFileSender struct {
 	filePath         string
 	displayName      string
 	expectedCertFP   string
+	authToken        string
 	targetAddr       string
 	chunkSize        int64
 	maxStreams       int
@@ -65,6 +66,10 @@ func (s *QUICFileSender) SetDisplayName(name string) {
 
 func (s *QUICFileSender) SetExpectedCertFingerprint(fingerprint string) {
 	s.expectedCertFP = fingerprint
+}
+
+func (s *QUICFileSender) SetAuthToken(token string) {
+	s.authToken = token
 }
 
 // EnableFailureSimulation 启用失败模拟（测试用）
@@ -132,6 +137,7 @@ func (s *QUICFileSender) Send(ctx context.Context) error {
 		ChunkSize:   s.chunkSize,
 		TotalChunks: totalChunks,
 		Blake3Hash:  hash,
+		AuthToken:   s.authToken,
 	}
 
 	if err := s.sendMetadata(ctx, metadata); err != nil {

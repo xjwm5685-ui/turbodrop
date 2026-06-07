@@ -39,7 +39,7 @@ func GetLocalIP() (string, error) {
 	return localAddr.IP.String(), nil
 }
 
-// GetSubnetIPs 根据本机 IP 和子网掩码生成子网内所有 IP 地址
+// GetSubnetIPs 根据本机 IP 和实际子网掩码生成子网内所有可用主机 IP 地址
 func GetSubnetIPs(localIP string) ([]string, error) {
 	interfaces, err := net.Interfaces()
 	if err != nil {
@@ -63,14 +63,46 @@ func GetSubnetIPs(localIP string) ([]string, error) {
 
 			// 找到匹配的网卡
 			if ipNet.IP.Equal(targetIP) {
-				// 计算网络地址
-				network := ipNet.IP.Mask(ipNet.Mask)
-				
-				// 生成该子网内所有可能的 IP
-				for i := 1; i < 255; i++ {
-					ip := make(net.IP, len(network))
-					copy(ip, network)
-					ip[3] = byte(i)
+				mask := ipNet.Mask
+				network := ipNet.IP.Mask(mask)
+
+				// 计算子网大小
+				maskOnes, maskBits := mask.Size()
+				if maskBits != 32 {
+					continue
+				}
+				hostBits := 32 - maskOnes
+				if hostBits <= 0 || hostBits > 24 {
+					// /32 无主机，/0 或过大的子网不扫描
+					return nil, fmt.Errorf("子网掩码不适用扫描: /%d", maskOnes)
+				}
+
+				totalHosts := 1 << hostBits
+				// 限制最大扫描范围，防止过大子网
+				if totalHosts > 65536 {
+					totalHosts = 65536
+				}
+
+				for i := 1; i < totalHosts-1; i++ { // 跳过网络地址和广播地址
+					ip := make(net.IP, 4)
+					copy(ip, network.To4())
+					// 从低位开始加，支持任意子网大小
+					for b := 3; b >= 0; b-- {
+						carry := i >> ((3 - b) * 8)
+						ip[b] = network.To4()[b] + byte(carry&0xff)
+					}
+					// 跳过网络地址本身
+					if ip.Equal(network) {
+						continue
+					}
+					// 跳过广播地址
+					broadcast := make(net.IP, 4)
+					for b := 0; b < 4; b++ {
+						broadcast[b] = network.To4()[b] | ^mask[b]
+					}
+					if ip.Equal(broadcast) {
+						continue
+					}
 					ips = append(ips, ip.String())
 				}
 				return ips, nil
