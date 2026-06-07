@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net"
 	"net/http"
 	"net/url"
@@ -50,6 +51,7 @@ type Server struct {
 	receiveMutex     sync.Mutex
 	activeReceive    *receiveSession
 	backgroundTasks  sync.WaitGroup
+	webuiFS          fs.FS
 	config           AppConfig
 	listenAddr       string
 	deviceName       string
@@ -161,6 +163,11 @@ func NewServerWithConfig(cfg AppConfig) *Server {
 	return s
 }
 
+// SetWebUIFS 设置嵌入的 Web UI 文件系统
+func (s *Server) SetWebUIFS(filesystem fs.FS) {
+	s.webuiFS = filesystem
+}
+
 // setupRoutes 设置路由
 func (s *Server) setupRoutes() {
 	// API 路由
@@ -176,8 +183,12 @@ func (s *Server) setupRoutes() {
 	api.HandleFunc("/send", s.handleSend).Methods("POST")
 	api.HandleFunc("/ws", s.handleWebSocket)
 
-	// 静态文件（可选，用于直接访问 dashboard.html）
-	s.router.PathPrefix("/").Handler(http.FileServer(http.Dir("./webui")))
+	// 静态文件
+	if s.webuiFS != nil {
+		s.router.PathPrefix("/").Handler(http.FileServer(http.FS(s.webuiFS)))
+	} else {
+		s.router.PathPrefix("/").Handler(http.FileServer(http.Dir("./webui")))
+	}
 
 	// 添加 CORS 支持
 	s.router.Use(corsMiddleware)

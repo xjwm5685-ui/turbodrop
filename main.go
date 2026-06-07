@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"embed"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/signal"
 	"syscall"
@@ -11,15 +13,17 @@ import (
 	"github.com/xjwm5685-ui/turbodrop/api"
 )
 
+//go:embed webui/*
+var webuiFiles embed.FS
+
 func main() {
 	fmt.Println("⚡ TurboDrop - 极速局域网文件传输工具")
 	fmt.Println("========================================")
-	fmt.Println("🚀 Phase 4: Web API + 实时通信")
+	fmt.Println("🚀 Phase 5: 工程化发布")
 	fmt.Println("========================================")
 	fmt.Println()
 
-	// 创建 webui 目录（如果不存在）
-	os.MkdirAll("./webui", 0755)
+	// 创建必要目录
 	os.MkdirAll("./received_files", 0755)
 	os.MkdirAll("./uploads", 0755)
 	os.MkdirAll("./data", 0755)
@@ -34,8 +38,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	// 提取嵌入的 webui 子目录
+	webuiFS, err := fs.Sub(webuiFiles, "webui")
+	if err != nil {
+		fmt.Printf("❌ 加载 Web UI 资源失败: %v\n", err)
+		os.Exit(1)
+	}
+
 	// 启动 API 服务器
 	server := api.NewServerWithConfig(cfg)
+	server.SetWebUIFS(webuiFS)
 
 	// 在后台启动服务器
 	go func() {
