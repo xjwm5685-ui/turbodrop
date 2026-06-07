@@ -71,8 +71,8 @@
 
 ### 方式 1: 下载发布版（推荐）
 
-1. 下载对应平台的可执行文件
-2. 直接运行：
+1. 前往 [Releases](https://github.com/xjwm5685-ui/turbodrop/releases) 下载对应平台的压缩包
+2. 解压后直接运行：
    ```bash
    # Windows
    turbodrop.exe
@@ -86,20 +86,20 @@
    http://localhost:48080/dashboard.html
    ```
 
-### 方式 2: 从源码编译
+### 方式 2: Go 一键安装
 
 ```bash
-# 克隆仓库
+go install github.com/xjwm5685-ui/turbodrop@latest
+turbodrop
+```
+
+### 方式 3: 从源码编译
+
+```bash
 git clone https://github.com/xjwm5685-ui/turbodrop.git
 cd turbodrop
-
-# 安装依赖
 go mod download
-
-# 编译
 go build -o turbodrop.exe main.go
-
-# 运行
 .\turbodrop.exe
 ```
 

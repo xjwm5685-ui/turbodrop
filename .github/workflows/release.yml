@@ -1,4 +1,4 @@
-name: Build and Test
+name: Build, Test & Release
 
 on:
   push:
@@ -8,6 +8,9 @@ on:
     tags:
       - "v*"
   pull_request:
+
+permissions:
+  contents: write
 
 jobs:
   test:
@@ -30,7 +33,7 @@ jobs:
       - name: Build
         run: go build ./...
 
-  release-build:
+  release:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: test
     runs-on: ubuntu-latest
@@ -39,22 +42,28 @@ jobs:
         include:
           - goos: windows
             goarch: amd64
-            output: turbodrop-windows-amd64.exe
+            suffix: .exe
+            archive: zip
           - goos: windows
             goarch: arm64
-            output: turbodrop-windows-arm64.exe
+            suffix: .exe
+            archive: zip
           - goos: linux
             goarch: amd64
-            output: turbodrop-linux-amd64
+            suffix: ""
+            archive: tar.gz
           - goos: linux
             goarch: arm64
-            output: turbodrop-linux-arm64
+            suffix: ""
+            archive: tar.gz
           - goos: darwin
             goarch: amd64
-            output: turbodrop-darwin-amd64
+            suffix: ""
+            archive: tar.gz
           - goos: darwin
             goarch: arm64
-            output: turbodrop-darwin-arm64
+            suffix: ""
+            archive: tar.gz
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -70,10 +79,54 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
         run: |
           mkdir -p dist
-          go build -o dist/${{ matrix.output }} .
+          go build -ldflags="-s -w" -o dist/turbodrop${{ matrix.suffix }} .
 
-      - name: Upload Artifact
+      - name: Package (zip)
+        if: matrix.archive == 'zip'
+        working-directory: dist
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          ARCHIVE="turbodrop-${TAG}-${{ matrix.goos }}-${{ matrix.goarch }}.zip"
+          zip "$ARCHIVE" turbodrop${{ matrix.suffix }}
+          echo "ASSET=$ARCHIVE" >> $GITHUB_ENV
+
+      - name: Package (tar.gz)
+        if: matrix.archive == 'tar.gz'
+        working-directory: dist
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          ARCHIVE="turbodrop-${TAG}-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz"
+          tar czf "$ARCHIVE" turbodrop${{ matrix.suffix }}
+          echo "ASSET=$ARCHIVE" >> $GITHUB_ENV
+
+      - name: Upload asset
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.output }}
-          path: dist/${{ matrix.output }}
+          name: ${{ env.ASSET }}
+          path: dist/${{ env.ASSET }}
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all assets
+        uses: actions/download-artifact@v4
+        with:
+          path: assets
+          merge-multiple: true
+
+      - name: Generate checksums
+        working-directory: assets
+        run: sha256sum turbodrop-* > checksums.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: assets/*
