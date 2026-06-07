@@ -1,0 +1,2349 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TurboDrop Mission Control</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #07111f;
+            --bg-elevated: rgba(13, 24, 40, 0.86);
+            --bg-soft: rgba(14, 29, 49, 0.72);
+            --panel: rgba(12, 21, 36, 0.9);
+            --panel-strong: rgba(8, 16, 28, 0.96);
+            --line: rgba(120, 196, 255, 0.16);
+            --line-strong: rgba(120, 196, 255, 0.34);
+            --text: #edf6ff;
+            --muted: #8aa6c6;
+            --muted-strong: #bfd0e6;
+            --cyan: #76d2ff;
+            --mint: #8affd4;
+            --gold: #ffc97d;
+            --rose: #ff7f98;
+            --shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+            --radius-xl: 30px;
+            --radius-lg: 22px;
+            --radius-md: 16px;
+            --font-display: 'Bricolage Grotesque', sans-serif;
+            --font-mono: 'IBM Plex Mono', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            min-height: 100vh;
+            overflow-x: hidden;
+            color: var(--text);
+            background:
+                radial-gradient(circle at 15% 20%, rgba(118, 210, 255, 0.18), transparent 24%),
+                radial-gradient(circle at 85% 18%, rgba(255, 201, 125, 0.13), transparent 24%),
+                radial-gradient(circle at 72% 82%, rgba(138, 255, 212, 0.12), transparent 20%),
+                linear-gradient(135deg, #040a13 0%, #07111f 36%, #091527 100%);
+            font-family: var(--font-display);
+            position: relative;
+        }
+
+        body::before,
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        body::before {
+            background:
+                linear-gradient(rgba(118, 210, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(118, 210, 255, 0.05) 1px, transparent 1px);
+            background-size: 72px 72px;
+            mask-image: radial-gradient(circle at center, black 45%, transparent 85%);
+            opacity: 0.55;
+        }
+
+        body::after {
+            background-image:
+                radial-gradient(rgba(255, 255, 255, 0.1) 0.8px, transparent 0.8px);
+            background-size: 6px 6px;
+            opacity: 0.045;
+            mix-blend-mode: screen;
+        }
+
+        .bg-grid,
+        .bg-particles {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        .bg-grid {
+            background: linear-gradient(180deg, transparent, rgba(118, 210, 255, 0.06), transparent);
+            opacity: 0.35;
+            animation: drift 12s linear infinite;
+        }
+
+        .bg-particles {
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            border-radius: 999px;
+            background: linear-gradient(180deg, var(--cyan), transparent);
+            box-shadow: 0 0 12px rgba(118, 210, 255, 0.9);
+            opacity: 0.4;
+            animation: particleFloat 16s linear infinite;
+        }
+
+        @keyframes particleFloat {
+            0% {
+                transform: translate3d(0, 120vh, 0) scale(0.6);
+                opacity: 0;
+            }
+            12% {
+                opacity: 0.45;
+            }
+            88% {
+                opacity: 0.45;
+            }
+            100% {
+                transform: translate3d(90px, -10vh, 0) scale(1.15);
+                opacity: 0;
+            }
+        }
+
+        @keyframes drift {
+            from { transform: translateY(-2%); }
+            to { transform: translateY(2%); }
+        }
+
+        .app-shell {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+        }
+
+        .app-header {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            padding: 22px 32px;
+            background: rgba(7, 17, 31, 0.78);
+            border-bottom: 1px solid rgba(118, 210, 255, 0.12);
+            backdrop-filter: blur(20px);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .logo-icon {
+            width: 54px;
+            height: 54px;
+            display: grid;
+            place-items: center;
+            border-radius: 18px;
+            background:
+                radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.2), transparent 40%),
+                linear-gradient(135deg, rgba(118, 210, 255, 0.25), rgba(255, 127, 152, 0.18));
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 12px 32px rgba(0, 0, 0, 0.22);
+            font-size: 1.45rem;
+        }
+
+        .logo-text h1 {
+            font-size: clamp(1.6rem, 2vw, 2.2rem);
+            line-height: 1;
+            letter-spacing: -0.04em;
+            font-weight: 800;
+        }
+
+        .logo-text p {
+            margin-top: 0.32rem;
+            font-family: var(--font-mono);
+            color: var(--muted);
+            font-size: 0.76rem;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+        }
+
+        .connection-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            color: var(--muted-strong);
+        }
+
+        .status-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 999px;
+            background: var(--rose);
+            box-shadow: 0 0 0 0 rgba(255, 127, 152, 0.55);
+        }
+
+        .status-dot.connected {
+            background: var(--mint);
+            animation: pulse 1.8s infinite;
+        }
+
+        .status-dot.disconnected {
+            background: var(--rose);
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(138, 255, 212, 0.45); }
+            70% { box-shadow: 0 0 0 10px rgba(138, 255, 212, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(138, 255, 212, 0); }
+        }
+
+        .app-main {
+            width: min(1520px, calc(100% - 40px));
+            margin: 0 auto;
+            padding: 28px 0 40px;
+        }
+
+        .hero-board,
+        .device-panel,
+        .tab-nav,
+        .tab-content,
+        .progress-section,
+        .speed-chart-container,
+        .transfer-history,
+        .console-shell {
+            animation: fadeUp 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(24px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hero-board {
+            display: grid;
+            grid-template-columns: minmax(0, 1.8fr) minmax(320px, 1fr);
+            gap: 18px;
+            margin-bottom: 20px;
+        }
+
+        .surface-card {
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0)),
+                var(--bg-elevated);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(18px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .surface-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, rgba(118, 210, 255, 0.08), transparent 28%, transparent 72%, rgba(255, 201, 125, 0.07));
+            pointer-events: none;
+        }
+
+        .hero-primary {
+            padding: 34px 34px 30px;
+            min-height: 260px;
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(118, 210, 255, 0.14);
+            background: rgba(118, 210, 255, 0.06);
+            color: var(--cyan);
+            font-family: var(--font-mono);
+            font-size: 0.74rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+        }
+
+        .hero-title {
+            margin-top: 18px;
+            font-size: clamp(2.3rem, 4.3vw, 4.8rem);
+            line-height: 0.94;
+            letter-spacing: -0.06em;
+            max-width: 10ch;
+        }
+
+        .hero-subtitle {
+            margin-top: 18px;
+            max-width: 52ch;
+            color: var(--muted-strong);
+            font-size: 1rem;
+            line-height: 1.7;
+        }
+
+        .hero-tags {
+            margin-top: 22px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .hero-tag {
+            padding: 10px 14px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            color: var(--muted-strong);
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+        }
+
+        .hero-side {
+            padding: 22px;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            align-content: start;
+        }
+
+        .telemetry-card {
+            padding: 18px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            min-height: 124px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .telemetry-label {
+            color: var(--muted);
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .telemetry-value {
+            font-size: clamp(1.6rem, 2vw, 2.1rem);
+            line-height: 1;
+            font-weight: 700;
+        }
+
+        .telemetry-hint {
+            color: var(--muted-strong);
+            font-size: 0.82rem;
+        }
+
+        .device-panel {
+            padding: 18px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+            background: transparent;
+            border: none;
+            box-shadow: none;
+        }
+
+        .device-stat {
+            padding: 22px;
+            border-radius: 22px;
+            background: rgba(12, 21, 36, 0.84);
+            border: 1px solid var(--line);
+            box-shadow: var(--shadow);
+        }
+
+        .device-stat-label {
+            color: var(--muted);
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+        }
+
+        .device-stat-value {
+            margin-top: 14px;
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            word-break: break-word;
+        }
+
+        .tab-nav {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 10px;
+            border-radius: 24px;
+            background: rgba(7, 17, 31, 0.6);
+            border: 1px solid rgba(118, 210, 255, 0.1);
+            backdrop-filter: blur(14px);
+        }
+
+        .tab-button {
+            border: 1px solid transparent;
+            background: transparent;
+            color: var(--muted-strong);
+            padding: 18px 20px;
+            border-radius: 18px;
+            font-family: var(--font-display);
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            cursor: pointer;
+            transition: 180ms ease;
+        }
+
+        .tab-button:hover {
+            transform: translateY(-1px);
+            border-color: rgba(118, 210, 255, 0.18);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .tab-button.active {
+            background:
+                linear-gradient(135deg, rgba(118, 210, 255, 0.16), rgba(255, 201, 125, 0.08)),
+                rgba(255, 255, 255, 0.03);
+            border-color: rgba(118, 210, 255, 0.18);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            color: var(--text);
+        }
+
+        .tab-content {
+            display: none;
+            padding: 0;
+            background: transparent;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .mission-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.95fr);
+            gap: 18px;
+        }
+
+        .control-card {
+            padding: 28px;
+        }
+
+        .card-title {
+            font-size: clamp(1.55rem, 2vw, 2.1rem);
+            letter-spacing: -0.04em;
+        }
+
+        .card-description {
+            margin-top: 10px;
+            color: var(--muted-strong);
+            line-height: 1.7;
+            max-width: 60ch;
+        }
+
+        .card-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+            color: var(--gold);
+            font-family: var(--font-mono);
+            font-size: 0.74rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .stack-column {
+            display: grid;
+            gap: 18px;
+            align-content: start;
+        }
+
+        .brief-card {
+            padding: 24px;
+        }
+
+        .brief-list {
+            display: grid;
+            gap: 14px;
+            margin-top: 14px;
+        }
+
+        .brief-item {
+            display: flex;
+            gap: 12px;
+            padding: 14px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .brief-item:first-child {
+            border-top: none;
+            padding-top: 0;
+        }
+
+        .brief-index {
+            width: 28px;
+            height: 28px;
+            border-radius: 999px;
+            display: grid;
+            place-items: center;
+            background: rgba(118, 210, 255, 0.12);
+            color: var(--cyan);
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            flex: none;
+        }
+
+        .brief-copy h4 {
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
+
+        .brief-copy p {
+            color: var(--muted);
+            line-height: 1.6;
+            font-size: 0.92rem;
+        }
+
+        .utility-grid {
+            display: grid;
+            gap: 18px;
+            margin-top: 18px;
+        }
+
+        .radar-scanner {
+            width: min(100%, 340px);
+            aspect-ratio: 1;
+            margin: 26px auto 20px;
+            position: relative;
+            display: none;
+            border-radius: 50%;
+            filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.22));
+        }
+
+        .radar-scanner.active,
+        .pin-display-container.active,
+        .progress-section.active,
+        .speed-chart-container.active,
+        .transfer-history.active {
+            display: block;
+        }
+
+        .radar-svg {
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+        }
+
+        .radar-disc {
+            fill: rgba(8, 18, 31, 0.82);
+            stroke: rgba(118, 210, 255, 0.2);
+            stroke-width: 1;
+        }
+
+        .radar-ring-line {
+            fill: none;
+            stroke: rgba(118, 210, 255, 0.22);
+            stroke-width: 1.4;
+        }
+
+        .radar-axis {
+            stroke: rgba(118, 210, 255, 0.12);
+            stroke-width: 1;
+        }
+
+        .radar-sweep-group {
+            transform-origin: 170px 170px;
+            animation: radarRotate 4.2s linear infinite;
+        }
+
+        .radar-sweep-cone {
+            fill: url(#radarSweepGradient);
+            opacity: 0.88;
+        }
+
+        .radar-sweep-line {
+            stroke: rgba(138, 255, 212, 0.95);
+            stroke-width: 2;
+            stroke-linecap: round;
+            filter: drop-shadow(0 0 8px rgba(138, 255, 212, 0.65));
+        }
+
+        .radar-blip {
+            fill: rgba(255, 201, 125, 0.9);
+            animation: radarBlink 2.4s ease-in-out infinite;
+        }
+
+        .radar-blip.alt {
+            fill: rgba(118, 210, 255, 0.95);
+            animation-delay: 0.65s;
+        }
+
+        .radar-core {
+            fill: url(#radarCoreGradient);
+            stroke: rgba(255, 255, 255, 0.2);
+            stroke-width: 1;
+            filter: drop-shadow(0 0 10px rgba(118, 210, 255, 0.6));
+        }
+
+        .radar-core-pulse {
+            fill: none;
+            stroke: rgba(138, 255, 212, 0.28);
+            stroke-width: 2;
+            animation: radarCorePulse 2.2s ease-out infinite;
+            transform-origin: 170px 170px;
+        }
+
+        .radar-glow {
+            position: absolute;
+            inset: 18% 18%;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(118, 210, 255, 0.14), transparent 70%);
+            filter: blur(18px);
+            pointer-events: none;
+        }
+
+        @keyframes radarRotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes radarBlink {
+            0%, 100% { opacity: 0.25; transform: scale(0.85); }
+            35% { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes radarCorePulse {
+            0% { opacity: 0; transform: scale(0.4); }
+            30% { opacity: 0.65; }
+            100% { opacity: 0; transform: scale(1.2); }
+        }
+
+        .pin-display-container {
+            display: none;
+            margin-top: 8px;
+        }
+
+        .pin-display {
+            padding: 28px;
+            border-radius: 26px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+            border: 1px solid rgba(118, 210, 255, 0.16);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pin-display::after {
+            content: '';
+            position: absolute;
+            inset: auto -10% -35% 55%;
+            height: 180px;
+            background: radial-gradient(circle, rgba(255, 201, 125, 0.18), transparent 68%);
+            filter: blur(10px);
+        }
+
+        .pin-display-inner {
+            position: relative;
+            z-index: 1;
+        }
+
+        .pin-label,
+        .input-label,
+        .progress-label,
+        .speed-chart-title,
+        .history-header {
+            font-family: var(--font-mono);
+            color: var(--muted);
+            font-size: 0.74rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+        }
+
+        .pin-code {
+            margin-top: 10px;
+            font-family: var(--font-mono);
+            font-size: clamp(2.8rem, 8vw, 4.8rem);
+            letter-spacing: 0.22em;
+            color: var(--text);
+            text-shadow: 0 0 22px rgba(118, 210, 255, 0.2);
+        }
+
+        .pin-timer {
+            margin-top: 14px;
+            color: var(--mint);
+            font-family: var(--font-mono);
+            font-size: 0.88rem;
+        }
+
+        .input-grid {
+            display: grid;
+            gap: 18px;
+            margin-top: 24px;
+        }
+
+        .input-group {
+            display: grid;
+            gap: 10px;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 16px 18px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(6, 13, 23, 0.72);
+            color: var(--text);
+            font-family: var(--font-mono);
+            font-size: 1rem;
+            transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+            outline: none;
+        }
+
+        .input-field:focus {
+            border-color: rgba(118, 210, 255, 0.42);
+            background: rgba(8, 16, 28, 0.92);
+            transform: translateY(-1px);
+        }
+
+        .pin-input {
+            font-size: 2.25rem;
+            text-align: center;
+            letter-spacing: 0.4em;
+        }
+
+        .dropzone {
+            margin-top: 22px;
+            padding: 34px 24px;
+            border-radius: 28px;
+            border: 1px dashed rgba(118, 210, 255, 0.28);
+            background:
+                radial-gradient(circle at top, rgba(118, 210, 255, 0.12), transparent 60%),
+                rgba(8, 16, 28, 0.7);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+            cursor: pointer;
+        }
+
+        .dropzone:hover,
+        .dropzone.dragover {
+            transform: translateY(-2px);
+            border-color: rgba(118, 210, 255, 0.5);
+            background:
+                radial-gradient(circle at top, rgba(118, 210, 255, 0.18), transparent 62%),
+                rgba(8, 16, 28, 0.84);
+        }
+
+        .dropzone::after {
+            content: '';
+            position: absolute;
+            inset: auto -10% 12px auto;
+            width: 160px;
+            height: 160px;
+            background: radial-gradient(circle, rgba(255, 201, 125, 0.12), transparent 70%);
+            filter: blur(14px);
+        }
+
+        .dropzone-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .dropzone-icon {
+            font-size: 3.2rem;
+        }
+
+        .dropzone-text {
+            margin-top: 10px;
+            font-size: 1.12rem;
+            font-weight: 700;
+        }
+
+        .dropzone-hint {
+            margin-top: 6px;
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        .selected-file-card {
+            display: none;
+            margin-top: 18px;
+            padding: 18px 20px;
+            border-radius: 20px;
+            background: rgba(10, 20, 32, 0.8);
+            border: 1px solid rgba(138, 255, 212, 0.16);
+        }
+
+        .selected-file-card.active {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .file-icon {
+            width: 52px;
+            height: 52px;
+            display: grid;
+            place-items: center;
+            border-radius: 16px;
+            background: rgba(118, 210, 255, 0.12);
+            font-size: 1.4rem;
+        }
+
+        .file-name {
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .file-size {
+            margin-top: 4px;
+            color: var(--mint);
+            font-family: var(--font-mono);
+            font-size: 0.86rem;
+        }
+
+        .btn {
+            width: 100%;
+            border: none;
+            border-radius: 18px;
+            padding: 18px 20px;
+            cursor: pointer;
+            font-family: var(--font-display);
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--cyan), var(--gold));
+            color: #07111f;
+            box-shadow: 0 18px 40px rgba(118, 210, 255, 0.18);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-icon {
+            margin-right: 8px;
+        }
+
+        .queue-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--muted-strong);
+            font-family: var(--font-mono);
+            font-size: 0.76rem;
+            margin-top: 18px;
+        }
+
+        .progress-section,
+        .speed-chart-container,
+        .transfer-history,
+        .console-shell {
+            display: none;
+            margin-top: 18px;
+            padding: 24px;
+        }
+
+        .progress-header,
+        .speed-chart-header,
+        .history-shell-header,
+        .console-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .progress-percent,
+        .speed-current {
+            font-family: var(--font-mono);
+            font-size: 1.75rem;
+            color: var(--mint);
+        }
+
+        .progress-bar-track {
+            position: relative;
+            width: 100%;
+            height: 18px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.06);
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            width: 0;
+            border-radius: 999px;
+            background: linear-gradient(90deg, var(--cyan), var(--mint), var(--gold));
+            position: relative;
+        }
+
+        .progress-bar-fill::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+            animation: shimmer 2.2s linear infinite;
+        }
+
+        @keyframes shimmer {
+            from { transform: translateX(-100%); }
+            to { transform: translateX(100%); }
+        }
+
+        .progress-stats {
+            margin-top: 18px;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .progress-stat {
+            padding: 16px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .progress-stat-label {
+            color: var(--muted);
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .progress-stat-value {
+            margin-top: 8px;
+            font-family: var(--font-mono);
+            font-size: 1rem;
+        }
+
+        .speed-chart-container {
+            height: 290px;
+        }
+
+        #speedChart {
+            width: 100%;
+            height: 180px;
+        }
+
+        .history-shell-header h3,
+        .console-header h3 {
+            font-size: 1.2rem;
+            letter-spacing: -0.03em;
+        }
+
+        .history-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 16px 18px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            transition: transform 0.18s ease, border-color 0.18s ease;
+        }
+
+        .history-item:hover {
+            transform: translateY(-1px);
+            border-color: rgba(118, 210, 255, 0.22);
+        }
+
+        .history-icon {
+            width: 42px;
+            height: 42px;
+            display: grid;
+            place-items: center;
+            border-radius: 14px;
+            background: rgba(118, 210, 255, 0.12);
+            flex: none;
+        }
+
+        .history-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .history-filename {
+            font-size: 0.98rem;
+            font-weight: 700;
+            word-break: break-all;
+        }
+
+        .history-meta {
+            margin-top: 4px;
+            color: var(--muted);
+            line-height: 1.55;
+            font-size: 0.86rem;
+        }
+
+        .history-status {
+            font-family: var(--font-mono);
+            font-size: 0.86rem;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(138, 255, 212, 0.08);
+            color: var(--mint);
+        }
+
+        .board-footer {
+            margin-top: 18px;
+            display: grid;
+            grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+            gap: 18px;
+        }
+
+        .console-shell {
+            display: block;
+        }
+
+        .console-log {
+            background: rgba(4, 10, 19, 0.82);
+            border: 1px solid rgba(118, 210, 255, 0.12);
+            border-radius: 20px;
+            padding: 12px;
+            max-height: 420px;
+            overflow-y: auto;
+            font-family: var(--font-mono);
+            font-size: 0.84rem;
+        }
+
+        .console-log::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .console-log::-webkit-scrollbar-thumb {
+            background: rgba(118, 210, 255, 0.28);
+            border-radius: 999px;
+        }
+
+        .log-entry {
+            padding: 10px 12px;
+            border-left: 2px solid rgba(118, 210, 255, 0.4);
+            border-radius: 12px;
+            background: rgba(118, 210, 255, 0.05);
+            color: var(--muted-strong);
+            line-height: 1.65;
+        }
+
+        .log-entry + .log-entry {
+            margin-top: 10px;
+        }
+
+        .log-entry.error {
+            border-left-color: rgba(255, 127, 152, 0.8);
+            background: rgba(255, 127, 152, 0.07);
+            color: #ffd1da;
+        }
+
+        .log-timestamp {
+            color: var(--cyan);
+            margin-right: 10px;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border-radius: 999px;
+            border: 2px solid rgba(7, 17, 31, 0.25);
+            border-top-color: rgba(7, 17, 31, 0.9);
+            animation: spin 0.7s linear infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 1200px) {
+            .hero-board,
+            .mission-layout,
+            .board-footer {
+                grid-template-columns: 1fr;
+            }
+
+            .device-panel {
+                grid-template-columns: 1fr;
+                padding: 0;
+            }
+        }
+
+        @media (max-width: 760px) {
+            .app-header {
+                padding: 18px 16px;
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .app-main {
+                width: min(100%, calc(100% - 24px));
+                padding-top: 18px;
+            }
+
+            .hero-primary,
+            .hero-side,
+            .control-card,
+            .brief-card,
+            .progress-section,
+            .speed-chart-container,
+            .transfer-history,
+            .console-shell {
+                padding: 20px;
+            }
+
+            .hero-side {
+                grid-template-columns: 1fr;
+            }
+
+            .tab-nav {
+                grid-template-columns: 1fr;
+            }
+
+            .pin-input {
+                font-size: 1.65rem;
+                letter-spacing: 0.22em;
+            }
+
+            .progress-stats {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-grid"></div>
+    <div class="bg-particles" id="particles"></div>
+
+    <div class="app-shell">
+        <header class="app-header">
+            <div class="logo">
+                <div class="logo-icon">⚡</div>
+                <div class="logo-text">
+                    <h1>TurboDrop</h1>
+                    <p>Mission Control Interface</p>
+                </div>
+            </div>
+            <div class="connection-indicator">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">初始化中...</span>
+            </div>
+        </header>
+
+        <main class="app-main">
+            <section class="hero-board">
+                <div class="surface-card hero-primary">
+                    <div class="eyebrow">LAN Transfer / QUIC Pipeline</div>
+                    <h2 class="hero-title">为局域网文件传输打造的控制台级界面</h2>
+                    <p class="hero-subtitle">TurboDrop 现在不只是一个测试页面，而是一块实时任务指挥台。接收、发送、队列、历史与配置都集中在一个高密度但清晰的工作流里。</p>
+                    <div class="hero-tags">
+                        <div class="hero-tag">PIN 握手</div>
+                        <div class="hero-tag">多文件队列</div>
+                        <div class="hero-tag">历史持久化</div>
+                        <div class="hero-tag">设置热更新</div>
+                    </div>
+                </div>
+                <div class="surface-card hero-side">
+                    <div class="telemetry-card">
+                        <div class="telemetry-label">当前工作区</div>
+                        <div class="telemetry-value" id="overviewActiveTab">接收</div>
+                        <div class="telemetry-hint">随当前标签切换</div>
+                    </div>
+                    <div class="telemetry-card">
+                        <div class="telemetry-label">待发送文件</div>
+                        <div class="telemetry-value" id="overviewQueueCount">0</div>
+                        <div class="telemetry-hint">队列实时统计</div>
+                    </div>
+                    <div class="telemetry-card">
+                        <div class="telemetry-label">历史记录</div>
+                        <div class="telemetry-value" id="overviewHistoryCount">0</div>
+                        <div class="telemetry-hint">来自本地持久化</div>
+                    </div>
+                    <div class="telemetry-card">
+                        <div class="telemetry-label">配置状态</div>
+                        <div class="telemetry-value" id="overviewConfigState">已加载</div>
+                        <div class="telemetry-hint">运行参数与端口配置</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="device-panel">
+                <div class="device-stat">
+                    <div class="device-stat-label">⚙️ 设备名称</div>
+                    <div class="device-stat-value" id="deviceName">---</div>
+                </div>
+                <div class="device-stat">
+                    <div class="device-stat-label">🌐 IP 地址</div>
+                    <div class="device-stat-value" id="deviceIP">---</div>
+                </div>
+                <div class="device-stat">
+                    <div class="device-stat-label">🔌 QUIC 端口</div>
+                    <div class="device-stat-value" id="devicePort">---</div>
+                </div>
+            </section>
+
+            <nav class="tab-nav">
+                <button class="tab-button active" onclick="switchTab('receive')">
+                    <span class="tab-icon">📥</span> 接收模式
+                </button>
+                <button class="tab-button" onclick="switchTab('send')">
+                    <span class="tab-icon">📤</span> 发送模式
+                </button>
+                <button class="tab-button" onclick="switchTab('settings')">
+                    <span class="tab-icon">⚙️</span> 设置面板
+                </button>
+            </nav>
+
+            <section class="tab-content active" id="receiveTab">
+                <div class="mission-layout">
+                    <div class="surface-card control-card">
+                        <div class="card-kicker">Receiver / Secure Pairing</div>
+                        <h3 class="card-title">生成 PIN，打开接收窗口</h3>
+                        <p class="card-description">接收模式会启动 PIN 广播与 QUIC 接收器，等待其他设备发现并发起连接。这个视图重点突出“可见的握手过程”和“可读的状态反馈”。</p>
+
+                        <div class="radar-scanner" id="radarScanner">
+                            <div class="radar-glow"></div>
+                            <svg class="radar-svg" viewBox="0 0 340 340" aria-hidden="true">
+                                <defs>
+                                    <radialGradient id="radarCoreGradient" cx="50%" cy="50%" r="50%">
+                                        <stop offset="0%" stop-color="#dffcff"></stop>
+                                        <stop offset="55%" stop-color="#8affd4"></stop>
+                                        <stop offset="100%" stop-color="#76d2ff"></stop>
+                                    </radialGradient>
+                                    <linearGradient id="radarSweepGradient" x1="170" y1="170" x2="304" y2="170" gradientUnits="userSpaceOnUse">
+                                        <stop offset="0%" stop-color="rgba(118,210,255,0)"></stop>
+                                        <stop offset="70%" stop-color="rgba(118,210,255,0.10)"></stop>
+                                        <stop offset="100%" stop-color="rgba(138,255,212,0.35)"></stop>
+                                    </linearGradient>
+                                </defs>
+                                <circle class="radar-disc" cx="170" cy="170" r="152"></circle>
+                                <circle class="radar-ring-line" cx="170" cy="170" r="42"></circle>
+                                <circle class="radar-ring-line" cx="170" cy="170" r="84"></circle>
+                                <circle class="radar-ring-line" cx="170" cy="170" r="126"></circle>
+                                <line class="radar-axis" x1="18" y1="170" x2="322" y2="170"></line>
+                                <line class="radar-axis" x1="170" y1="18" x2="170" y2="322"></line>
+                                <line class="radar-axis" x1="62" y1="62" x2="278" y2="278"></line>
+                                <line class="radar-axis" x1="278" y1="62" x2="62" y2="278"></line>
+                                <g class="radar-sweep-group">
+                                    <path class="radar-sweep-cone" d="M170 170 L296 136 A140 140 0 0 1 296 204 Z"></path>
+                                    <line class="radar-sweep-line" x1="170" y1="170" x2="304" y2="170"></line>
+                                </g>
+                                <circle class="radar-blip" cx="104" cy="122" r="4"></circle>
+                                <circle class="radar-blip alt" cx="244" cy="112" r="5"></circle>
+                                <circle class="radar-blip" cx="230" cy="234" r="4"></circle>
+                                <circle class="radar-blip alt" cx="136" cy="252" r="3.5"></circle>
+                                <circle class="radar-core-pulse" cx="170" cy="170" r="22"></circle>
+                                <circle class="radar-core" cx="170" cy="170" r="14"></circle>
+                            </svg>
+                        </div>
+
+                        <div class="pin-display-container" id="pinDisplayContainer">
+                            <div class="pin-display">
+                                <div class="pin-display-inner">
+                                    <div class="pin-label">连接 PIN 码</div>
+                                    <div class="pin-code" id="pinCode">------</div>
+                                    <div class="pin-timer" id="pinTimer">正在生成...</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="queue-pill">任务提示: PIN 会通过广播被局域网设备发现</div>
+
+                        <button class="btn btn-primary" id="startReceiveBtn" onclick="startReceive()" style="margin-top: 20px;">
+                            <span class="btn-icon">🎯</span> 生成 PIN 并开始接收
+                        </button>
+                    </div>
+
+                    <div class="stack-column">
+                        <div class="surface-card brief-card">
+                            <div class="card-kicker">Receive Flow</div>
+                            <h3 class="card-title">三步完成握手</h3>
+                            <div class="brief-list">
+                                <div class="brief-item">
+                                    <div class="brief-index">1</div>
+                                    <div class="brief-copy">
+                                        <h4>初始化接收端</h4>
+                                        <p>系统生成 6 位 PIN，并开始广播设备信息与监听 QUIC 端口。</p>
+                                    </div>
+                                </div>
+                                <div class="brief-item">
+                                    <div class="brief-index">2</div>
+                                    <div class="brief-copy">
+                                        <h4>等待发送端发现</h4>
+                                        <p>另一台设备输入 PIN 后会自动扫描与配对，雷达动画表示当前处于待命阶段。</p>
+                                    </div>
+                                </div>
+                                <div class="brief-item">
+                                    <div class="brief-index">3</div>
+                                    <div class="brief-copy">
+                                        <h4>持续接收队列</h4>
+                                        <p>接收端支持队列里的后续文件，传输完成后历史会自动写入本地。</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="surface-card brief-card">
+                            <div class="card-kicker">Runtime Notes</div>
+                            <h3 class="card-title">当前模式特性</h3>
+                            <div class="brief-list">
+                                <div class="brief-item">
+                                    <div class="brief-index">A</div>
+                                    <div class="brief-copy">
+                                        <h4>适合放在大屏侧</h4>
+                                        <p>PIN 与雷达区域已强化视觉层级，便于现场演示或测试联调时快速查看。</p>
+                                    </div>
+                                </div>
+                                <div class="brief-item">
+                                    <div class="brief-index">B</div>
+                                    <div class="brief-copy">
+                                        <h4>日志仍在底部保留</h4>
+                                        <p>视觉升级不会牺牲排障能力，底部控制台仍保留原始事件轨迹。</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="tab-content" id="sendTab">
+                <div class="mission-layout">
+                    <div class="surface-card control-card">
+                        <div class="card-kicker">Sender / Queue Orchestration</div>
+                        <h3 class="card-title">批量文件发送，一次完成整条链路</h3>
+                        <p class="card-description">输入 PIN 后，可以拖拽多个文件进入待发送队列，或者直接输入本机路径。浏览器上传与本地路径发送都保留，队列执行状态会在界面顶部和发送按钮上同步变化。</p>
+
+                        <div class="input-grid">
+                            <div class="input-group">
+                                <label class="input-label">输入 PIN 码</label>
+                                <input type="text"
+                                       class="input-field pin-input"
+                                       id="pinInput"
+                                       placeholder="------"
+                                       maxlength="6"
+                                       pattern="[0-9]{6}">
+                            </div>
+                        </div>
+
+                        <div class="dropzone" id="dropzone">
+                            <div class="dropzone-content">
+                                <div class="dropzone-icon">📁</div>
+                                <div class="dropzone-text">拖拽文件到这里，或者点击选择文件</div>
+                                <div class="dropzone-hint">支持多文件队列。浏览器会先上传到本机服务，再通过 QUIC 顺序发送。</div>
+                            </div>
+                            <input type="file" id="fileInput" style="display: none;" multiple>
+                        </div>
+
+                        <div class="selected-file-card" id="selectedFileCard">
+                            <div class="file-icon">📄</div>
+                            <div class="file-info">
+                                <div class="file-name" id="selectedFileName">未选择文件</div>
+                                <div class="file-size" id="selectedFileSize">请添加一个或多个文件</div>
+                            </div>
+                        </div>
+
+                        <div class="input-group" style="margin-top: 18px;">
+                            <label class="input-label">或直接输入本机文件路径</label>
+                            <input type="text"
+                                   class="input-field"
+                                   id="filePathInput"
+                                   placeholder="./example.dat 或 D:\files\example.dat">
+                        </div>
+
+                        <button class="btn btn-primary" id="startSendBtn" onclick="startSend()" style="margin-top: 20px;">
+                            <span class="btn-icon">🚀</span> 开始传输
+                        </button>
+                    </div>
+
+                    <div class="stack-column">
+                        <div class="surface-card brief-card transfer-history active" id="queueContainer" style="display: block;">
+                            <div class="history-shell-header">
+                                <div>
+                                    <div class="history-header">待发送队列</div>
+                                    <h3>Queue Preview</h3>
+                                </div>
+                                <div class="queue-pill" id="queueSummaryPill">0 项</div>
+                            </div>
+                            <div class="history-list" id="queueList"></div>
+                        </div>
+
+                        <div class="surface-card progress-section" id="progressSection">
+                            <div class="progress-header">
+                                <div>
+                                    <div class="progress-label">传输进度</div>
+                                    <h3 style="margin-top: 4px;">Active Transfer</h3>
+                                </div>
+                                <div class="progress-percent" id="progressPercent">0%</div>
+                            </div>
+                            <div class="progress-bar-track">
+                                <div class="progress-bar-fill" id="progressBarFill" style="width: 0%"></div>
+                            </div>
+                            <div class="progress-stats">
+                                <div class="progress-stat">
+                                    <div class="progress-stat-label">速度</div>
+                                    <div class="progress-stat-value" id="progressSpeed">0 MB/s</div>
+                                </div>
+                                <div class="progress-stat">
+                                    <div class="progress-stat-label">数据量</div>
+                                    <div class="progress-stat-value" id="progressSize">0 / 0 MB</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="surface-card speed-chart-container" id="speedChartContainer">
+                            <div class="speed-chart-header">
+                                <div>
+                                    <div class="speed-chart-title">实时速度曲线</div>
+                                    <h3 style="margin-top: 4px;">Throughput</h3>
+                                </div>
+                                <div class="speed-current" id="speedCurrent">0 MB/s</div>
+                            </div>
+                            <canvas id="speedChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="tab-content" id="settingsTab">
+                <div class="mission-layout">
+                    <div class="surface-card control-card">
+                        <div class="card-kicker">Settings / Runtime Configuration</div>
+                        <h3 class="card-title">把服务参数变成可视化配置</h3>
+                        <p class="card-description">设备名、端口、并发流数和分块大小都会写入本地配置文件。除了 Web 监听地址需要重启外，其余设置会对后续新任务即时生效。</p>
+
+                        <div class="input-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+                            <div class="input-group">
+                                <label class="input-label">设备名称</label>
+                                <input type="text" class="input-field" id="settingsDeviceName" placeholder="TurboDrop Device">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Web 主机地址</label>
+                                <input type="text" class="input-field" id="settingsWebHost" placeholder="localhost">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Web 端口</label>
+                                <input type="number" class="input-field" id="settingsWebPort" min="1" max="65535" placeholder="48080">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">QUIC 端口</label>
+                                <input type="number" class="input-field" id="settingsQuicPort" min="1" max="65535" placeholder="9001">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">并发流数</label>
+                                <input type="number" class="input-field" id="settingsMaxStreams" min="1" max="128" placeholder="16">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">块大小(MB)</label>
+                                <input type="number" class="input-field" id="settingsChunkSize" min="1" max="64" placeholder="4">
+                            </div>
+                            <div class="input-group" style="grid-column: 1 / -1;">
+                                <label class="input-label">默认保存位置</label>
+                                <input type="text" class="input-field" id="settingsSaveDir" placeholder="./received_files">
+                            </div>
+                        </div>
+
+                        <button class="btn btn-primary" id="saveSettingsBtn" onclick="saveSettings()" style="margin-top: 22px;">
+                            <span class="btn-icon">💾</span> 保存设置
+                        </button>
+                    </div>
+
+                    <div class="stack-column">
+                        <div class="surface-card brief-card">
+                            <div class="card-kicker">Apply Rules</div>
+                            <h3 class="card-title">设置生效说明</h3>
+                            <div class="brief-list">
+                                <div class="brief-item">
+                                    <div class="brief-index">1</div>
+                                    <div class="brief-copy">
+                                        <h4>即时生效</h4>
+                                        <p>设备名称、QUIC 端口、并发流数、块大小会应用到后续新发起的任务。</p>
+                                    </div>
+                                </div>
+                                <div class="brief-item">
+                                    <div class="brief-index">2</div>
+                                    <div class="brief-copy">
+                                        <h4>需要重启</h4>
+                                        <p>Web 主机地址与 Web 端口会保存到本地，但当前进程需要重启后才切换监听地址。</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="surface-card brief-card">
+                            <div class="card-kicker">Persistence</div>
+                            <h3 class="card-title">配置落盘</h3>
+                            <div class="brief-list">
+                                <div class="brief-item">
+                                    <div class="brief-index">A</div>
+                                    <div class="brief-copy">
+                                        <h4>文件位置</h4>
+                                        <p>配置会持久化到 `./data/app_config.json`，与历史文件分开管理。</p>
+                                    </div>
+                                </div>
+                                <div class="brief-item">
+                                    <div class="brief-index">B</div>
+                                    <div class="brief-copy">
+                                        <h4>便于联调</h4>
+                                        <p>现在可以直接在 UI 中调整发送参数，而不需要每次修改源码或重新编译常量。</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="board-footer">
+                <div class="surface-card transfer-history" id="transferHistory" style="display: block;">
+                    <div class="history-shell-header">
+                        <div>
+                            <div class="history-header">传输历史</div>
+                            <h3>Persistent History</h3>
+                        </div>
+                        <div class="queue-pill" id="historySummaryPill">0 条</div>
+                    </div>
+                    <div class="history-list" id="historyList"></div>
+                </div>
+
+                <div class="surface-card console-shell" style="display: block;">
+                    <div class="console-header">
+                        <div>
+                            <div class="history-header">系统日志</div>
+                            <h3>Event Console</h3>
+                        </div>
+                        <div class="queue-pill" id="logSummaryPill">等待事件</div>
+                    </div>
+                    <div class="console-log" id="consoleLog"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE = `${window.location.origin}/api/v1`;
+        const WS_PROTOCOL = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const WS_URL = `${WS_PROTOCOL}//${window.location.host}/api/v1/ws`;
+        
+        // State
+        let ws = null;
+        let selectedFiles = [];
+        let uploadedFileMap = new Map();
+        let pinStartTime = null;
+        let pinTimerInterval = null;
+        let speedData = [];
+        let speedChart = null;
+        let queueStatus = { total: 0, completed: 0, current: 0 };
+        let currentConfig = null;
+        const MAX_SPEED_POINTS = 60;
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            initParticles();
+            loadDeviceInfo();
+            loadSettings();
+            loadHistory();
+            connectWebSocket();
+            initDropzone();
+            initSpeedChart();
+            updateOverviewTab('receive');
+            updateQueueSummary();
+            updateHistorySummary(0);
+        });
+
+        // Create particle background
+        function initParticles() {
+            const container = document.getElementById('particles');
+            const particleCount = 30;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 20 + 's';
+                particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+                container.appendChild(particle);
+            }
+        }
+
+        // Load device info
+        async function loadDeviceInfo() {
+            try {
+                const response = await fetch(`${API_BASE}/info`);
+                const data = await response.json();
+                document.getElementById('deviceName').textContent = data.name;
+                document.getElementById('deviceIP').textContent = data.ip;
+                document.getElementById('devicePort').textContent = data.quic_port;
+            } catch (error) {
+                addLog('加载设备信息失败: ' + error.message, true);
+            }
+        }
+
+        // WebSocket connection
+        function connectWebSocket() {
+            ws = new WebSocket(WS_URL);
+
+            ws.onopen = () => {
+                updateConnectionStatus(true);
+                addLog('系统在线，WebSocket 已连接。');
+            };
+
+            ws.onclose = () => {
+                updateConnectionStatus(false);
+                addLog('连接已断开，5 秒后自动重连...', true);
+                setTimeout(connectWebSocket, 5000);
+            };
+
+            ws.onerror = (error) => {
+                addLog('WebSocket 错误: ' + error, true);
+            };
+
+            ws.onmessage = (event) => {
+                const msg = JSON.parse(event.data);
+                handleWSMessage(msg);
+            };
+        }
+
+        // Handle WebSocket messages
+        function handleWSMessage(msg) {
+            switch(msg.type) {
+                case 'log':
+                    addLog(msg.data.message);
+                    break;
+                case 'error':
+                    addLog('错误: ' + msg.data.error, true);
+                    resetSendButton();
+                    document.getElementById('radarScanner').classList.remove('active');
+                    break;
+                case 'pin_generated':
+                    showPINCode(msg.data.pin);
+                    addLog('PIN 码已生成: ' + msg.data.pin);
+                    break;
+                case 'device_found':
+                    addLog(`已发现设备: ${msg.data.device_name} (${msg.data.device_ip})`);
+                    document.getElementById('radarScanner').classList.remove('active');
+                    break;
+                case 'transfer_start':
+                    showProgress();
+                    addLog('开始传输: ' + msg.data.filename);
+                    speedData = [];
+                    break;
+                case 'progress':
+                    updateProgress(msg.data);
+                    updateSpeedChart(msg.data.speed_mbps);
+                    break;
+                case 'transfer_done':
+                    addLog('传输完成: ' + msg.data.message);
+                    completeTransfer(msg.data);
+                    stopPinTimer();
+                    document.getElementById('radarScanner').classList.remove('active');
+                    break;
+                case 'queue_status':
+                    handleQueueStatus(msg.data);
+                    break;
+            }
+        }
+
+        // Update connection status
+        function updateConnectionStatus(connected) {
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('statusText');
+            
+            if (connected) {
+                dot.classList.add('connected');
+                dot.classList.remove('disconnected');
+                text.textContent = '在线';
+            } else {
+                dot.classList.add('disconnected');
+                dot.classList.remove('connected');
+                text.textContent = '离线';
+            }
+        }
+
+        // Show PIN code with timer
+        function showPINCode(pin) {
+            document.getElementById('pinCode').textContent = pin;
+            document.getElementById('pinDisplayContainer').classList.add('active');
+            document.getElementById('radarScanner').classList.add('active');
+            startPinTimer();
+        }
+
+        function startPinTimer() {
+            pinStartTime = Date.now();
+            document.getElementById('pinTimer').textContent = '已激活 0 秒';
+            
+            pinTimerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - pinStartTime) / 1000);
+                document.getElementById('pinTimer').textContent = `已激活 ${elapsed} 秒`;
+            }, 1000);
+        }
+
+        function stopPinTimer() {
+            if (pinTimerInterval) {
+                clearInterval(pinTimerInterval);
+                pinTimerInterval = null;
+            }
+        }
+
+        // Initialize dropzone
+        function initDropzone() {
+            const dropzone = document.getElementById('dropzone');
+            const fileInput = document.getElementById('fileInput');
+            
+            dropzone.addEventListener('click', () => fileInput.click());
+            
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFileSelect(Array.from(e.target.files));
+                }
+            });
+            
+            dropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropzone.classList.add('dragover');
+            });
+            
+            dropzone.addEventListener('dragleave', () => {
+                dropzone.classList.remove('dragover');
+            });
+            
+            dropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('dragover');
+                
+                if (e.dataTransfer.files.length > 0) {
+                    handleFileSelect(Array.from(e.dataTransfer.files));
+                }
+            });
+        }
+
+        function handleFileSelect(files) {
+            selectedFiles = files;
+            uploadedFileMap = new Map();
+            updateSelectedFileSummary();
+            renderQueueList();
+            document.getElementById('filePathInput').value = '';
+            addLog(`已加入 ${files.length} 个文件到发送队列`);
+        }
+
+        function updateSelectedFileSummary() {
+            const card = document.getElementById('selectedFileCard');
+            const nameEl = document.getElementById('selectedFileName');
+            const sizeEl = document.getElementById('selectedFileSize');
+
+            if (selectedFiles.length === 0) {
+                card.classList.remove('active');
+                nameEl.textContent = '未选择文件';
+                sizeEl.textContent = '请添加一个或多个文件';
+                return;
+            }
+
+            const totalSize = selectedFiles.reduce((sum, file) => sum + file.size, 0);
+            card.classList.add('active');
+            if (selectedFiles.length === 1) {
+                nameEl.textContent = selectedFiles[0].name;
+            } else {
+                nameEl.textContent = `${selectedFiles.length} 个文件待发送`;
+            }
+            sizeEl.textContent = `总大小 ${formatFileSize(totalSize)}`;
+        }
+
+        function renderQueueList() {
+            const queueList = document.getElementById('queueList');
+            queueList.innerHTML = '';
+
+            if (selectedFiles.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'history-item';
+                empty.innerHTML = `
+                    <div class="history-icon">📭</div>
+                    <div class="history-info">
+                        <div class="history-filename">队列为空</div>
+                        <div class="history-meta">拖拽文件或点击上方区域添加文件</div>
+                    </div>
+                    <div class="history-status">-</div>
+                `;
+                queueList.appendChild(empty);
+                updateQueueSummary();
+                return;
+            }
+
+            selectedFiles.forEach((file, index) => {
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                item.innerHTML = `
+                    <div class="history-icon">📄</div>
+                    <div class="history-info">
+                        <div class="history-filename">${index + 1}. ${file.name}</div>
+                        <div class="history-meta">${formatFileSize(file.size)}</div>
+                    </div>
+                    <div class="history-status">待发送</div>
+                `;
+                queueList.appendChild(item);
+            });
+
+            updateQueueSummary();
+        }
+
+        function getFileCacheKey(file) {
+            return `${file.name}:${file.size}:${file.lastModified}`;
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+            if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+            return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+        }
+
+        // Initialize speed chart
+        function initSpeedChart() {
+            const canvas = document.getElementById('speedChart');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = canvas.offsetWidth;
+            canvas.height = 180;
+            
+            speedChart = {
+                canvas: canvas,
+                ctx: ctx,
+                draw: function() {
+                    const ctx = this.ctx;
+                    const width = this.canvas.width;
+                    const height = this.canvas.height;
+                    
+                    ctx.clearRect(0, 0, width, height);
+                    
+                    if (speedData.length === 0) return;
+                    
+                    const maxSpeed = Math.max(...speedData, 10);
+                    const padding = 20;
+                    const chartHeight = height - padding * 2;
+                    const chartWidth = width - padding * 2;
+                    
+                    // Draw grid
+                    ctx.strokeStyle = 'rgba(0, 255, 255, 0.1)';
+                    ctx.lineWidth = 1;
+                    for (let i = 0; i <= 4; i++) {
+                        const y = padding + (chartHeight / 4) * i;
+                        ctx.beginPath();
+                        ctx.moveTo(padding, y);
+                        ctx.lineTo(width - padding, y);
+                        ctx.stroke();
+                    }
+                    
+                    // Draw speed line
+                    if (speedData.length > 1) {
+                        ctx.strokeStyle = '#00ffff';
+                        ctx.lineWidth = 3;
+                        ctx.shadowBlur = 10;
+                        ctx.shadowColor = '#00ffff';
+                        ctx.beginPath();
+                        
+                        speedData.forEach((speed, index) => {
+                            const x = padding + (chartWidth / MAX_SPEED_POINTS) * index;
+                            const y = height - padding - (speed / maxSpeed) * chartHeight;
+                            
+                            if (index === 0) {
+                                ctx.moveTo(x, y);
+                            } else {
+                                ctx.lineTo(x, y);
+                            }
+                        });
+                        
+                        ctx.stroke();
+                        
+                        // Fill gradient
+                        const gradient = ctx.createLinearGradient(0, padding, 0, height - padding);
+                        gradient.addColorStop(0, 'rgba(0, 255, 255, 0.3)');
+                        gradient.addColorStop(1, 'rgba(0, 255, 255, 0)');
+                        
+                        ctx.lineTo(width - padding, height - padding);
+                        ctx.lineTo(padding, height - padding);
+                        ctx.closePath();
+                        ctx.fillStyle = gradient;
+                        ctx.fill();
+                    }
+                    
+                    ctx.shadowBlur = 0;
+                }
+            };
+        }
+
+        function updateSpeedChart(speedMBps) {
+            speedData.push(speedMBps);
+            
+            if (speedData.length > MAX_SPEED_POINTS) {
+                speedData.shift();
+            }
+            
+            if (speedChart) {
+                speedChart.draw();
+            }
+            
+            document.getElementById('speedCurrent').textContent = speedMBps.toFixed(1) + ' MB/s';
+        }
+
+        // Tab switching
+        function switchTab(tab) {
+            const tabs = document.querySelectorAll('.tab-button');
+            const contents = document.querySelectorAll('.tab-content');
+            
+            tabs.forEach(t => t.classList.remove('active'));
+            contents.forEach(c => c.classList.remove('active'));
+
+            const tabMap = {
+                receive: 0,
+                send: 1,
+                settings: 2
+            };
+
+            const index = tabMap[tab] ?? 0;
+            tabs[index].classList.add('active');
+            contents[index].classList.add('active');
+            updateOverviewTab(tab);
+        }
+
+        // Start receive mode
+        async function startReceive() {
+            const btn = document.getElementById('startReceiveBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span> 正在初始化...';
+
+            try {
+                const response = await fetch(`${API_BASE}/receive`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    addLog('接收端初始化成功');
+                    btn.innerHTML = '<span class="btn-icon">✓</span> 接收端已启动';
+                } else {
+                    throw new Error(data.message || '初始化失败');
+                }
+            } catch (error) {
+                addLog('启动接收端失败: ' + error.message, true);
+                btn.disabled = false;
+                btn.innerHTML = '<span class="btn-icon">🎯</span> 生成 PIN 并开始接收';
+            }
+        }
+
+        // Start send mode
+        async function startSend() {
+            const pinInput = document.getElementById('pinInput');
+            const pin = pinInput.value.replace(/\D/g, '');
+            let filepath = document.getElementById('filePathInput').value.trim();
+            let files = [];
+
+            pinInput.value = pin;
+
+            if (pin.length !== 6) {
+                alert('请输入 6 位数字 PIN 码');
+                return;
+            }
+
+            if (!filepath && selectedFiles.length > 0) {
+                try {
+                    files = await uploadSelectedFiles(selectedFiles);
+                } catch (error) {
+                    addLog('文件上传失败: ' + error.message, true);
+                    return;
+                }
+            }
+
+            if (!filepath && files.length === 0) {
+                alert('请选择文件，或输入本机文件路径');
+                return;
+            }
+
+            if (filepath) {
+                files = [{
+                    filepath,
+                    filename: extractFileName(filepath)
+                }];
+            }
+
+            const btn = document.getElementById('startSendBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span> 正在启动传输...';
+            queueStatus = { total: files.length, completed: 0, current: 0 };
+
+            document.getElementById('radarScanner').classList.add('active');
+
+            try {
+                const response = await fetch(`${API_BASE}/send`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pin, files })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    addLog(data.message || '发送队列已启动');
+                    btn.innerHTML = '<span class="btn-icon">✓</span> 队列执行中';
+                } else {
+                    throw new Error(data.message || '启动失败');
+                }
+            } catch (error) {
+                addLog('启动发送任务失败: ' + error.message, true);
+                resetSendButton();
+                document.getElementById('radarScanner').classList.remove('active');
+            }
+        }
+
+        async function uploadSelectedFiles(files) {
+            const results = [];
+
+            for (const file of files) {
+                const cacheKey = getFileCacheKey(file);
+                if (uploadedFileMap.has(cacheKey)) {
+                    results.push(uploadedFileMap.get(cacheKey));
+                    continue;
+                }
+
+                addLog(`正在上传文件到本机服务: ${file.name}`);
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const response = await fetch(`${API_BASE}/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || data.message || '上传失败');
+                }
+
+                const result = {
+                    filepath: data.filepath,
+                    filename: data.original_name,
+                    size: data.size
+                };
+                uploadedFileMap.set(cacheKey, result);
+                results.push(result);
+                addLog(`文件上传成功，准备发送: ${data.original_name}`);
+            }
+
+            return results;
+        }
+
+        function extractFileName(path) {
+            return path.split(/[/\\]/).pop() || path;
+        }
+
+        function resetSendButton() {
+            const btn = document.getElementById('startSendBtn');
+            btn.disabled = false;
+            btn.innerHTML = '<span class="btn-icon">🚀</span> 开始传输';
+        }
+
+        function handleQueueStatus(data) {
+            queueStatus = {
+                total: data.total || 0,
+                completed: data.completed || 0,
+                current: data.current || 0
+            };
+            updateQueueSummary();
+
+            if (data.status === 'done') {
+                resetSendButton();
+                addLog(`队列执行完成: ${queueStatus.completed}/${queueStatus.total}`);
+            } else if (queueStatus.total > 0) {
+                const btn = document.getElementById('startSendBtn');
+                btn.innerHTML = `<span class="btn-icon">✓</span> 队列 ${queueStatus.completed}/${queueStatus.total}`;
+            }
+        }
+
+        // Show progress
+        function showProgress() {
+            document.getElementById('progressSection').classList.add('active');
+            document.getElementById('speedChartContainer').classList.add('active');
+        }
+
+        // Update progress
+        function updateProgress(data) {
+            const percent = data.percent.toFixed(1);
+            const speed = data.speed_mbps.toFixed(2);
+            const transferred = (data.transferred / (1024 * 1024)).toFixed(2);
+            const total = (data.total / (1024 * 1024)).toFixed(2);
+
+            document.getElementById('progressBarFill').style.width = percent + '%';
+            document.getElementById('progressPercent').textContent = percent + '%';
+            document.getElementById('progressSpeed').textContent = speed + ' MB/s';
+            document.getElementById('progressSize').textContent = `${transferred} / ${total} MB`;
+        }
+
+        // Complete transfer
+        function completeTransfer(data) {
+            document.getElementById('progressBarFill').style.width = '100%';
+            document.getElementById('progressPercent').textContent = '100%';
+            addToHistory(data);
+        }
+
+        async function loadHistory() {
+            try {
+                const response = await fetch(`${API_BASE}/history`);
+                const data = await response.json();
+                if (data.success && Array.isArray(data.items)) {
+                    renderHistory(data.items);
+                }
+            } catch (error) {
+                addLog('加载传输历史失败: ' + error.message, true);
+            }
+        }
+
+        async function loadSettings() {
+            try {
+                const response = await fetch(`${API_BASE}/config`);
+                const data = await response.json();
+                if (data.success && data.config) {
+                    currentConfig = data.config;
+                    populateSettingsForm(data.config);
+                    updateConfigState('已加载');
+                }
+            } catch (error) {
+                updateConfigState('读取失败');
+                addLog('加载设置失败: ' + error.message, true);
+            }
+        }
+
+        function populateSettingsForm(config) {
+            document.getElementById('settingsDeviceName').value = config.device_name || '';
+            document.getElementById('settingsWebHost').value = config.web_host || '';
+            document.getElementById('settingsWebPort').value = config.web_port || '';
+            document.getElementById('settingsQuicPort').value = config.quic_port || '';
+            document.getElementById('settingsMaxStreams').value = config.max_concurrent_streams || '';
+            document.getElementById('settingsChunkSize').value = config.chunk_size_mb || '';
+            document.getElementById('settingsSaveDir').value = config.save_dir || '';
+        }
+
+        async function saveSettings() {
+            const btn = document.getElementById('saveSettingsBtn');
+            const payload = {
+                device_name: document.getElementById('settingsDeviceName').value.trim(),
+                web_host: document.getElementById('settingsWebHost').value.trim(),
+                web_port: Number(document.getElementById('settingsWebPort').value),
+                quic_port: Number(document.getElementById('settingsQuicPort').value),
+                max_concurrent_streams: Number(document.getElementById('settingsMaxStreams').value),
+                chunk_size_mb: Number(document.getElementById('settingsChunkSize').value),
+                save_dir: document.getElementById('settingsSaveDir').value.trim()
+            };
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span> 正在保存...';
+
+            try {
+                const response = await fetch(`${API_BASE}/config`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || data.message || '保存失败');
+                }
+
+                currentConfig = data.config;
+                populateSettingsForm(data.config);
+                document.getElementById('deviceName').textContent = data.config.device_name;
+                document.getElementById('devicePort').textContent = data.config.quic_port;
+                updateConfigState(data.requires_restart ? '待重启' : '已同步');
+                addLog('设置已保存');
+                if (data.requires_restart) {
+                    addLog('Web 监听地址已变更，重启 TurboDrop 后生效。', true);
+                }
+            } catch (error) {
+                updateConfigState('保存失败');
+                addLog('保存设置失败: ' + error.message, true);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span class="btn-icon">💾</span> 保存设置';
+            }
+        }
+
+        function renderHistory(items) {
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = '';
+
+            if (!items.length) {
+                updateHistorySummary(0);
+                return;
+            }
+
+            document.getElementById('transferHistory').classList.add('active');
+            items.forEach(item => appendHistoryItem(item, false));
+            updateHistorySummary(items.length);
+        }
+
+        // Add to transfer history
+        function addToHistory(data) {
+            document.getElementById('transferHistory').classList.add('active');
+            appendHistoryItem({
+                filename: data.filename || '传输任务',
+                message: data.message || '文件传输成功',
+                size: data.size || 0,
+                status: data.status || 'success',
+                completed_at: data.completed_at || new Date().toISOString()
+            }, true);
+        }
+
+        function appendHistoryItem(data, prepend = true) {
+            const historyContainer = document.getElementById('transferHistory');
+            const historyList = document.getElementById('historyList');
+            
+            historyContainer.classList.add('active');
+            
+            const item = document.createElement('div');
+            item.className = 'history-item';
+            item.innerHTML = `
+                <div class="history-icon">📄</div>
+                <div class="history-info">
+                    <div class="history-filename">${data.filename || '传输任务'}</div>
+                    <div class="history-meta">${data.message || '文件传输完成'} · ${formatHistoryTime(data.completed_at || data.completedAt)}${data.size ? ` · ${formatFileSize(data.size)}` : ''}</div>
+                </div>
+                <div class="history-status">${data.status === 'failed' ? '失败' : '成功'}</div>
+            `;
+
+            if (prepend) {
+                historyList.insertBefore(item, historyList.firstChild);
+            } else {
+                historyList.appendChild(item);
+            }
+
+            updateHistorySummary(historyList.children.length);
+        }
+
+        function formatHistoryTime(value) {
+            if (!value) {
+                return '刚刚';
+            }
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) {
+                return value;
+            }
+            return `完成时间 ${date.toLocaleString()}`;
+        }
+
+        // Add console log
+        function addLog(message, isError = false) {
+            const logContainer = document.getElementById('consoleLog');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry' + (isError ? ' error' : '');
+            
+            const timestamp = new Date().toLocaleTimeString();
+            entry.innerHTML = `
+                <span class="log-timestamp">[${timestamp}]</span>
+                <span>${message}</span>
+            `;
+            
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            updateLogSummary();
+        }
+
+        function updateOverviewTab(tab) {
+            const labelMap = {
+                receive: '接收',
+                send: '发送',
+                settings: '设置'
+            };
+            document.getElementById('overviewActiveTab').textContent = labelMap[tab] || '接收';
+        }
+
+        function updateQueueSummary() {
+            const total = selectedFiles.length || queueStatus.total || 0;
+            document.getElementById('overviewQueueCount').textContent = String(total);
+
+            const pill = document.getElementById('queueSummaryPill');
+            if (!pill) return;
+
+            if (queueStatus.total > 0) {
+                pill.textContent = `${queueStatus.completed}/${queueStatus.total} 已完成`;
+                return;
+            }
+
+            pill.textContent = `${selectedFiles.length} 项`;
+        }
+
+        function updateHistorySummary(count) {
+            document.getElementById('overviewHistoryCount').textContent = String(count);
+            const pill = document.getElementById('historySummaryPill');
+            if (pill) {
+                pill.textContent = `${count} 条`;
+            }
+        }
+
+        function updateConfigState(text) {
+            document.getElementById('overviewConfigState').textContent = text;
+        }
+
+        function updateLogSummary() {
+            const count = document.getElementById('consoleLog').children.length;
+            const pill = document.getElementById('logSummaryPill');
+            if (!pill) return;
+            pill.textContent = count === 0 ? '等待事件' : `${count} 条事件`;
+        }
+    </script>
+</body>
+</html>

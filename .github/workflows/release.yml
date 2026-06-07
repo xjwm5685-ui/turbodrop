@@ -1,0 +1,79 @@
+name: Build and Test
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - "v*"
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Download Dependencies
+        run: go mod download
+
+      - name: Run Tests
+        run: go test -v ./...
+
+      - name: Build
+        run: go build ./...
+
+  release-build:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: windows
+            goarch: amd64
+            output: turbodrop-windows-amd64.exe
+          - goos: windows
+            goarch: arm64
+            output: turbodrop-windows-arm64.exe
+          - goos: linux
+            goarch: amd64
+            output: turbodrop-linux-amd64
+          - goos: linux
+            goarch: arm64
+            output: turbodrop-linux-arm64
+          - goos: darwin
+            goarch: amd64
+            output: turbodrop-darwin-amd64
+          - goos: darwin
+            goarch: arm64
+            output: turbodrop-darwin-arm64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build Binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          mkdir -p dist
+          go build -o dist/${{ matrix.output }} .
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.output }}
+          path: dist/${{ matrix.output }}
