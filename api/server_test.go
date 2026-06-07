@@ -16,7 +16,7 @@ func TestSanitizeUploadFileName(t *testing.T) {
 	}{
 		{name: "normal", in: "report.txt", want: "report.txt"},
 		{name: "empty", in: "   ", want: "uploaded-file"},
-		{name: "nested path", in: `folder\bad:name?.txt`, want: "bad_name_.txt"},
+		{name: "nested path", in: "folder/bad:name?.txt", want: "bad_name_.txt"},
 		{name: "unix path", in: "dir/sub/file.txt", want: "file.txt"},
 	}
 
