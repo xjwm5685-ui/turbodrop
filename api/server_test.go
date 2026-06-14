@@ -104,21 +104,38 @@ func TestNormalizeSendItemsRejectsMissingFile(t *testing.T) {
 func TestIsAllowedOrigin(t *testing.T) {
 	tests := []struct {
 		name   string
+		host   string
 		origin string
 		want   bool
 	}{
-		{name: "empty", origin: "", want: true},
-		{name: "localhost", origin: "http://localhost:48080", want: true},
-		{name: "loopback", origin: "http://127.0.0.1:48080", want: true},
-		{name: "ipv6 loopback", origin: "http://[::1]:48080", want: true},
-		{name: "remote host", origin: "http://evil.example.com", want: false},
-		{name: "invalid", origin: "://bad-origin", want: false},
+		// 默认（空 host）：只允许 loopback
+		{name: "empty origin", host: "", origin: "", want: true},
+		{name: "localhost", host: "", origin: "http://localhost:48080", want: true},
+		{name: "loopback", host: "", origin: "http://127.0.0.1:48080", want: true},
+		{name: "ipv6 loopback", host: "", origin: "http://[::1]:48080", want: true},
+		{name: "remote rejected", host: "", origin: "http://evil.example.com", want: false},
+		{name: "invalid origin", host: "", origin: "://bad", want: false},
+
+		// 特定 LAN IP：匹配放行，不匹配拒绝
+		{name: "lan ip match", host: "192.168.1.100", origin: "http://192.168.1.100:48080", want: true},
+		{name: "lan ip mismatch", host: "192.168.1.100", origin: "http://192.168.1.200:48080", want: false},
+		{name: "lan ip localhost still ok", host: "192.168.1.100", origin: "http://localhost:48080", want: true},
+
+		// 0.0.0.0：接受局域网来源，拒绝公网来源
+		{name: "wildcard lan ip", host: "0.0.0.0", origin: "http://192.168.1.50:48080", want: true},
+		{name: "wildcard private class a", host: "0.0.0.0", origin: "http://10.1.2.3:48080", want: true},
+		{name: "wildcard link local", host: "0.0.0.0", origin: "http://169.254.10.20:48080", want: true},
+		{name: "wildcard local hostname", host: "0.0.0.0", origin: "http://desktop-pc:48080", want: true},
+		{name: "wildcard mdns hostname", host: "0.0.0.0", origin: "http://turbodrop.local:48080", want: true},
+		{name: "wildcard public ip rejected", host: "0.0.0.0", origin: "http://8.8.8.8:48080", want: false},
+		{name: "wildcard remote rejected", host: "0.0.0.0", origin: "http://external.host.com", want: false},
+		{name: "wildcard localhost", host: "0.0.0.0", origin: "http://localhost:48080", want: true},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := isAllowedOrigin(tc.origin); got != tc.want {
-				t.Fatalf("isAllowedOrigin(%q) = %v, want %v", tc.origin, got, tc.want)
+			if got := isAllowedOrigin(tc.origin, tc.host); got != tc.want {
+				t.Fatalf("isAllowedOrigin(%q, %q) = %v, want %v", tc.origin, tc.host, got, tc.want)
 			}
 		})
 	}

@@ -21,29 +21,49 @@ import (
 
 // QUICFileReceiver QUIC 文件接收器
 type QUICFileReceiver struct {
-	listenAddr       string
-	saveDir          string
-	tlsConfig        *tls.Config
-	authToken        string           // PIN 握手认证令牌
-	listener         *quic.Listener
-	bytesReceived    atomic.Int64
-	totalBytes       int64
-	metadata         models.FileMetadata
-	file             *os.File
-	startTime        time.Time
-	writeMutex       sync.Mutex     // 保护文件写入
-	stateManager     *StateManager  // 状态管理器
-	resuming         bool           // 是否正在断点续传
+	listenAddr        string
+	saveDir           string
+	tlsConfig         *tls.Config
+	authToken         string          // PIN 握手认证令牌
+	listener          *quic.Listener
+	bytesReceived     atomic.Int64
+	totalBytes        int64
+	metadata          models.FileMetadata
+	file              *os.File
+	startTime         time.Time
+	writeMutex        sync.Mutex      // 保护文件写入
+	stateManager      *StateManager   // 状态管理器
+	resuming          bool            // 是否正在断点续传
+	certFingerprint   string          // 实际使用的证书指纹
+	streamAcceptTimeout time.Duration // 每次 AcceptUniStream 的超时时间
 }
 
+// defaultStreamAcceptTimeout 单个流等待超时
+const defaultStreamAcceptTimeout = 30 * time.Second
+
 // NewQUICFileReceiver 创建文件接收器
+// listenPort 传 0 表示由系统分配随机可用端口
 func NewQUICFileReceiver(listenPort int, saveDir string, tlsConfig *tls.Config, authToken string) *QUICFileReceiver {
 	return &QUICFileReceiver{
-		listenAddr: fmt.Sprintf("0.0.0.0:%d", listenPort),
-		saveDir:    saveDir,
-		tlsConfig:  tlsConfig,
-		authToken:  authToken,
+		listenAddr:          fmt.Sprintf("0.0.0.0:%d", listenPort),
+		saveDir:             saveDir,
+		tlsConfig:           tlsConfig,
+		authToken:           authToken,
+		streamAcceptTimeout: defaultStreamAcceptTimeout,
 	}
+}
+
+// GetListenAddr 返回实际监听的地址（端口可能由系统分配）
+func (r *QUICFileReceiver) GetListenAddr() string {
+	if r.listener != nil {
+		return r.listener.Addr().String()
+	}
+	return r.listenAddr
+}
+
+// GetCertFingerprint 返回当前使用的 TLS 证书指纹
+func (r *QUICFileReceiver) GetCertFingerprint() string {
+	return r.certFingerprint
 }
 
 // Start 启动接收器监听
@@ -51,13 +71,15 @@ func (r *QUICFileReceiver) Start(ctx context.Context) error {
 	tlsConfig := r.tlsConfig
 	if tlsConfig == nil {
 		var err error
-		tlsConfig, _, err = GenerateEphemeralTLSConfig()
+		var fp string
+		tlsConfig, fp, err = GenerateEphemeralTLSConfig()
 		if err != nil {
 			return fmt.Errorf("生成 TLS 证书失败: %w", err)
 		}
+		r.certFingerprint = fp
 	}
 
-	// 启动 QUIC 监听器
+	// 启动 QUIC 监听器（支持传 0 让系统分配端口）
 	listener, err := quic.ListenAddr(r.listenAddr, tlsConfig, &quic.Config{
 		MaxIdleTimeout:  30 * time.Second,
 		KeepAlivePeriod: 10 * time.Second,
@@ -66,6 +88,7 @@ func (r *QUICFileReceiver) Start(ctx context.Context) error {
 		return fmt.Errorf("QUIC 监听失败: %w", err)
 	}
 	r.listener = listener
+	r.listenAddr = listener.Addr().String()
 
 	fmt.Printf("📡 QUIC 接收端已启动，监听 %s\n", r.listenAddr)
 	fmt.Println("⏳ 等待发送端连接...")
@@ -225,9 +248,9 @@ func (r *QUICFileReceiver) receiveMetadata(ctx context.Context, conn quic.Connec
 				fmt.Println("   将跳过已完成的块，继续传输")
 				fmt.Println()
 				
-				// 初始化已接收字节数
-				r.bytesReceived.Store(int64(completed) * r.metadata.ChunkSize)
-				
+				// 初始化已接收字节数（按实际完成的块大小求和）
+				r.bytesReceived.Store(sm.GetCompletedBytes(r.metadata.FileSize, r.metadata.ChunkSize))
+
 				resumeReq = models.ResumeRequest{
 					Resume:       true,
 					CompletedMap: sm.GetBitsetBytes(),
@@ -312,6 +335,10 @@ func (r *QUICFileReceiver) receiveChunksConcurrently(ctx context.Context, conn q
 		expectedStreams = r.metadata.TotalChunks - r.stateManager.GetCompletedCount()
 	}
 	if expectedStreams <= 0 {
+		// 确保最终状态已落盘（空文件场景）
+		if r.stateManager != nil {
+			_ = r.stateManager.Flush()
+		}
 		return nil
 	}
 
@@ -321,16 +348,23 @@ func (r *QUICFileReceiver) receiveChunksConcurrently(ctx context.Context, conn q
 	fmt.Println("⚡ 开始并发接收数据流...")
 	fmt.Println()
 
-	// 接收所有单向流
+	// 接收所有单向流，每次 Accept 有独立超时
 	for i := 0; i < expectedStreams; i++ {
 		wg.Add(1)
 
 		go func() {
 			defer wg.Done()
 
-			stream, err := conn.AcceptUniStream(ctx)
+			acceptCtx, acceptCancel := context.WithTimeout(ctx, r.streamAcceptTimeout)
+			defer acceptCancel()
+
+			stream, err := conn.AcceptUniStream(acceptCtx)
 			if err != nil {
-				errChan <- err
+				if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+					errChan <- fmt.Errorf("接收超时或发送端断开: %w", err)
+				} else {
+					errChan <- err
+				}
 				return
 			}
 
@@ -343,6 +377,11 @@ func (r *QUICFileReceiver) receiveChunksConcurrently(ctx context.Context, conn q
 	// 等待所有协程完成
 	wg.Wait()
 	close(errChan)
+
+	// 最终刷新一次状态文件（确保最后一批 NoSave 的块落盘）
+	if r.stateManager != nil {
+		_ = r.stateManager.Flush()
+	}
 
 	// 检查错误
 	var errs []error
@@ -363,6 +402,12 @@ func (r *QUICFileReceiver) receiveChunk(stream quic.ReceiveStream) error {
 	}
 	offset := int64(binary.BigEndian.Uint64(header))
 
+	// 边界校验：offset 必须在文件范围内（0 字节文件允许 offset=0）
+	if r.metadata.FileSize > 0 && (offset < 0 || offset >= r.metadata.FileSize) {
+		io.Copy(io.Discard, stream)
+		return fmt.Errorf("偏移量越界: offset=%d, fileSize=%d", offset, r.metadata.FileSize)
+	}
+
 	// 计算块索引
 	chunkIndex := int(offset / r.metadata.ChunkSize)
 
@@ -373,10 +418,21 @@ func (r *QUICFileReceiver) receiveChunk(stream quic.ReceiveStream) error {
 		return nil
 	}
 
-	// 读取所有数据
-	data, err := io.ReadAll(stream)
+	// 限制读取大小：不超过 ChunkSize 且不超过文件剩余空间
+	maxRead := r.metadata.ChunkSize
+	remaining := r.metadata.FileSize - offset
+	if maxRead > remaining {
+		maxRead = remaining
+	}
+
+	// 使用 LimitReader 防止单块读入超大内存
+	data, err := io.ReadAll(io.LimitReader(stream, maxRead))
 	if err != nil {
 		return err
+	}
+
+	if int64(len(data)) > maxRead {
+		return fmt.Errorf("数据块超大: got %d bytes, max %d", len(data), maxRead)
 	}
 
 	// 并发安全地写入文件
@@ -388,9 +444,12 @@ func (r *QUICFileReceiver) receiveChunk(stream quic.ReceiveStream) error {
 		return err
 	}
 
-	// 标记该块为已完成并持久化
-	if err := r.stateManager.MarkChunkComplete(chunkIndex); err != nil {
-		fmt.Printf("⚠️  保存状态失败: %v\n", err)
+	// 标记该块为已完成，但不每次写盘；每 10 个块或传输结束时统一 Flush
+	r.stateManager.MarkChunkCompleteNoSave(chunkIndex)
+	if (chunkIndex+1)%10 == 0 {
+		if err := r.stateManager.Flush(); err != nil {
+			fmt.Printf("⚠️  保存状态失败: %v\n", err)
+		}
 	}
 
 	// 更新已接收字节数
@@ -412,8 +471,11 @@ func (r *QUICFileReceiver) monitorProgress(ctx context.Context) {
 			return
 		case <-ticker.C:
 			received := r.bytesReceived.Load()
-			percentage := float64(received) / float64(r.totalBytes) * 100
-			
+			percentage := 100.0
+			if r.totalBytes > 0 {
+				percentage = float64(received) / float64(r.totalBytes) * 100
+			}
+
 			// 计算瞬时速度
 			delta := received - lastBytes
 			speedMBps := float64(delta) / (1024 * 1024)
@@ -473,6 +535,15 @@ func validateMetadata(m *models.FileMetadata) error {
 	if m.FileSize < 0 {
 		return fmt.Errorf("FileSize 不能为负数，收到: %d", m.FileSize)
 	}
+
+	// 0 字节文件允许 TotalChunks == 1
+	if m.FileSize == 0 {
+		if m.TotalChunks != 1 {
+			return fmt.Errorf("0 字节文件的 TotalChunks 必须为 1，收到: %d", m.TotalChunks)
+		}
+		return nil
+	}
+
 	// 检查 TotalChunks 与 FileSize/ChunkSize 的一致性（允许 ±1 的余数差异）
 	expectedChunks := int((m.FileSize + m.ChunkSize - 1) / m.ChunkSize)
 	if m.TotalChunks > expectedChunks+1 {

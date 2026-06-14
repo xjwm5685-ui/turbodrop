@@ -4,6 +4,28 @@ All notable changes to this project are documented in this file.
 
 The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [v1.1.0] - 2026-06-14
+
+### Added
+- LAN bridge mode for phone/computer two-way transfer.
+- Phone-to-computer browser uploads saved to the configured computer save folder.
+- Computer-to-phone shared download list for files selected on the computer.
+- Windows portable starter script: `START_TURBODROP.bat`.
+- Portable quick start guide: `QUICKSTART.md`.
+- Firewall scripts now cover Web UI TCP 48080, PIN UDP 8899, and QUIC UDP 9001.
+
+### Changed
+- Web UI redesigned as a practical dispatch console with clearer RX/TX/LAN/CFG workflows.
+- Default Web host now listens on `0.0.0.0` for local-network access.
+- Startup logs now print both localhost and the preferred LAN URL.
+- LAN visitors see the transfer-focused interface by default.
+- Local IP detection now prefers real private LAN adapters over tunnel/test adapters.
+
+### Fixed
+- Embedded Web UI is served correctly in standalone portable builds.
+- LAN visitors can no longer open the computer settings panel or native folder picker.
+- LAN visitors can no longer request sends from arbitrary computer-local file paths.
+
 ## [v1.0.0] - 2026-06-08
 
 ### Added

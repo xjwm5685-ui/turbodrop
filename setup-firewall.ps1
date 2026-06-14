@@ -18,31 +18,37 @@ if (-not $isAdmin) {
     exit 1
 }
 
-Write-Host "Adding firewall rule for UDP port 8899..." -ForegroundColor Yellow
+Write-Host "Adding firewall rules for TurboDrop LAN access..." -ForegroundColor Yellow
 Write-Host ""
 
 try {
-    # Remove existing rule if exists
-    Remove-NetFirewallRule -DisplayName "TurboDrop UDP" -ErrorAction SilentlyContinue
+    $rules = @(
+        @{ Name = "TurboDrop Web UI TCP"; Protocol = "TCP"; Port = 48080 },
+        @{ Name = "TurboDrop PIN UDP"; Protocol = "UDP"; Port = 8899 },
+        @{ Name = "TurboDrop QUIC UDP"; Protocol = "UDP"; Port = 9001 }
+    )
+
+    foreach ($rule in $rules) {
+        Remove-NetFirewallRule -DisplayName $rule.Name -ErrorAction SilentlyContinue
+        New-NetFirewallRule -DisplayName $rule.Name `
+                            -Direction Inbound `
+                            -Action Allow `
+                            -Protocol $rule.Protocol `
+                            -LocalPort $rule.Port `
+                            -Profile Private `
+                            -ErrorAction Stop | Out-Null
+    }
     
-    # Add new rule
-    New-NetFirewallRule -DisplayName "TurboDrop UDP" `
-                        -Direction Inbound `
-                        -Action Allow `
-                        -Protocol UDP `
-                        -LocalPort 8899 `
-                        -ErrorAction Stop
-    
-    Write-Host "[SUCCESS] Firewall rule added successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Firewall rules added successfully!" -ForegroundColor Green
     Write-Host ""
     Write-Host "Rule Details:" -ForegroundColor Cyan
-    Write-Host "  Name: TurboDrop UDP"
-    Write-Host "  Port: UDP 8899"
-    Write-Host "  Direction: Inbound"
-    Write-Host "  Action: Allow"
+    Write-Host "  TurboDrop Web UI TCP : TCP 48080"
+    Write-Host "  TurboDrop PIN UDP    : UDP 8899"
+    Write-Host "  TurboDrop QUIC UDP   : UDP 9001"
+    Write-Host "  Profile              : Private"
     Write-Host ""
 } catch {
-    Write-Host "[ERROR] Failed to add firewall rule!" -ForegroundColor Red
+    Write-Host "[ERROR] Failed to add firewall rules!" -ForegroundColor Red
     Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
     Write-Host ""
 }

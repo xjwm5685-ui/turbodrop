@@ -11,15 +11,16 @@ import (
 type EventType string
 
 const (
-	EventDeviceInfo    EventType = "device_info"     // 设备信息
-	EventPINGenerated  EventType = "pin_generated"   // PIN 码生成
-	EventDeviceFound   EventType = "device_found"    // 设备发现成功
-	EventTransferStart EventType = "transfer_start"  // 传输开始
-	EventProgress      EventType = "progress"        // 传输进度
-	EventTransferDone  EventType = "transfer_done"   // 传输完成
-	EventQueueStatus   EventType = "queue_status"    // 队列状态
-	EventError         EventType = "error"           // 错误
-	EventLog           EventType = "log"             // 日志消息
+	EventDeviceInfo    EventType = "device_info"    // 设备信息
+	EventPINGenerated  EventType = "pin_generated"  // PIN 码生成
+	EventDeviceFound   EventType = "device_found"   // 设备发现成功
+	EventTransferStart EventType = "transfer_start" // 传输开始
+	EventProgress      EventType = "progress"       // 传输进度
+	EventTransferDone  EventType = "transfer_done"  // 传输完成
+	EventQueueStatus   EventType = "queue_status"   // 队列状态
+	EventSharedFiles   EventType = "shared_files"   // 共享文件列表变化
+	EventError         EventType = "error"          // 错误
+	EventLog           EventType = "log"            // 日志消息
 )
 
 // WSMessage WebSocket 消息结构
@@ -30,11 +31,11 @@ type WSMessage struct {
 
 // ProgressData 进度数据
 type ProgressData struct {
-	FileName   string  `json:"filename"`
-	SpeedMBps  float64 `json:"speed_mbps"`
-	Percent    float64 `json:"percent"`
-	Transferred int64  `json:"transferred"`
-	Total      int64   `json:"total"`
+	FileName    string  `json:"filename"`
+	SpeedMBps   float64 `json:"speed_mbps"`
+	Percent     float64 `json:"percent"`
+	Transferred int64   `json:"transferred"`
+	Total       int64   `json:"total"`
 }
 
 // Client WebSocket 客户端
@@ -51,6 +52,8 @@ type Hub struct {
 	register   chan *Client
 	unregister chan *Client
 	mutex      sync.RWMutex
+	stop       chan struct{}
+	stopOnce   sync.Once
 }
 
 // NewHub 创建新的 Hub
@@ -60,6 +63,7 @@ func NewHub() *Hub {
 		broadcast:  make(chan []byte, 256),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
+		stop:       make(chan struct{}),
 	}
 }
 
@@ -67,6 +71,15 @@ func NewHub() *Hub {
 func (h *Hub) Run() {
 	for {
 		select {
+		case <-h.stop:
+			// 清理所有客户端连接后退出
+			h.mutex.Lock()
+			for client := range h.clients {
+				delete(h.clients, client)
+				close(client.send)
+			}
+			h.mutex.Unlock()
+			return
 		case client := <-h.register:
 			h.mutex.Lock()
 			h.clients[client] = true
@@ -106,6 +119,18 @@ func (h *Hub) Run() {
 			h.mutex.Unlock()
 		}
 	}
+}
+
+// Stop 停止 Hub，关闭后所有 goroutine 会安全退出
+func (h *Hub) Stop() {
+	h.stopOnce.Do(func() {
+		close(h.stop)
+	})
+}
+
+// Close 是 Stop 的别名，便于调用方使用统一命名
+func (h *Hub) Close() {
+	h.Stop()
 }
 
 // Broadcast 广播消息

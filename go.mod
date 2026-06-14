@@ -1,6 +1,6 @@
 module github.com/xjwm5685-ui/turbodrop
 
-go 1.21
+go 1.25.0
 
 require (
 	github.com/bits-and-blooms/bitset v1.13.0
@@ -8,6 +8,7 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/quic-go/quic-go v0.40.1
 	github.com/zeebo/blake3 v0.2.3
+	golang.org/x/sync v0.21.0
 )
 
 require (

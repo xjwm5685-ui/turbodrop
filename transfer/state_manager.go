@@ -26,6 +26,7 @@ type StateManager struct {
 	totalChunks int            // 总块数
 	mutex       sync.RWMutex   // 读写锁，保护并发访问
 	metadata    models.FileMetadata
+	dirty       bool // 是否有未保存的变更
 }
 
 // NewStateManager 创建状态管理器
@@ -85,7 +86,7 @@ func CheckExists(filePath string) bool {
 	return err == nil
 }
 
-// MarkChunkComplete 标记某个 Chunk 为已完成
+// MarkChunkComplete 标记某个 Chunk 为已完成并立即持久化
 func (sm *StateManager) MarkChunkComplete(chunkIndex int) error {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()
@@ -95,6 +96,53 @@ func (sm *StateManager) MarkChunkComplete(chunkIndex int) error {
 
 	// 持久化到磁盘
 	return sm.save()
+}
+
+// MarkChunkCompleteNoSave 标记某个 Chunk 为已完成，但不立即写盘（需要调用 Flush）
+func (sm *StateManager) MarkChunkCompleteNoSave(chunkIndex int) {
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
+
+	// 设置位图
+	sm.bitset.Set(uint(chunkIndex))
+	sm.dirty = true
+}
+
+// Flush 将未保存的变更持久化到磁盘
+func (sm *StateManager) Flush() error {
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
+
+	if !sm.dirty {
+		return nil
+	}
+	if err := sm.save(); err != nil {
+		return err
+	}
+	sm.dirty = false
+	return nil
+}
+
+// GetCompletedBytes 根据已完成的块计算实际已接收/发送的字节数
+// 避免用 completed*ChunkSize 导致最后一块多算
+func (sm *StateManager) GetCompletedBytes(totalSize, chunkSize int64) int64 {
+	sm.mutex.RLock()
+	defer sm.mutex.RUnlock()
+
+	var bytes int64
+	for i := 0; i < sm.totalChunks; i++ {
+		if sm.bitset.Test(uint(i)) {
+			offset := int64(i) * chunkSize
+			size := chunkSize
+			if offset+size > totalSize {
+				size = totalSize - offset
+			}
+			if size > 0 {
+				bytes += size
+			}
+		}
+	}
+	return bytes
 }
 
 // IsChunkComplete 检查某个 Chunk 是否已完成

@@ -4,17 +4,16 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"os"
-	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/quic-go/quic-go"
 	"github.com/xjwm5685-ui/turbodrop/models"
 	"github.com/zeebo/blake3"
+	"golang.org/x/sync/errgroup"
 )
 
 // QUICFileSender QUIC 文件发送器
@@ -130,7 +129,11 @@ func (s *QUICFileSender) Send(ctx context.Context) error {
 	fmt.Println()
 
 	// 3. 发送文件元数据（控制流）
+	// 0 字节文件也至少保留 1 个 chunk，用于告诉接收端这是一个空文件
 	totalChunks := int((s.totalBytes + s.chunkSize - 1) / s.chunkSize)
+	if totalChunks < 1 {
+		totalChunks = 1
+	}
 	metadata := models.FileMetadata{
 		FileName:    displayName,
 		FileSize:    s.totalBytes,
@@ -154,6 +157,9 @@ func (s *QUICFileSender) Send(ctx context.Context) error {
 	if err := s.sendChunksConcurrently(ctx, file, totalChunks); err != nil {
 		return fmt.Errorf("发送文件块失败: %w", err)
 	}
+
+	// 给接收端留一点时间来处理最后的数据流，再关闭连接
+	time.Sleep(200 * time.Millisecond)
 
 	elapsed := time.Since(s.startTime)
 	avgSpeed := float64(s.totalBytes) / elapsed.Seconds() / (1024 * 1024)
@@ -209,8 +215,8 @@ func (s *QUICFileSender) sendMetadata(ctx context.Context, metadata models.FileM
 		fmt.Println("   将跳过已完成的块")
 		fmt.Println()
 
-		// 初始化已传输字节数
-		s.bytesTransferred.Store(int64(completed) * metadata.ChunkSize)
+		// 初始化已传输字节数（按实际完成的块大小求和，避免最后一块多算）
+		s.bytesTransferred.Store(s.stateManager.GetCompletedBytes(metadata.FileSize, metadata.ChunkSize))
 	} else {
 		fmt.Println("✅ 接收端已就绪（新传输）")
 		fmt.Println()
@@ -220,12 +226,8 @@ func (s *QUICFileSender) sendMetadata(ctx context.Context, metadata models.FileM
 }
 
 // sendChunksConcurrently 并发发送所有文件块
+// 使用 errgroup：任意 goroutine 返回错误时会立即取消其它 goroutine 的上下文
 func (s *QUICFileSender) sendChunksConcurrently(ctx context.Context, file *os.File, totalChunks int) error {
-	// 创建协程池（信号量）
-	semaphore := make(chan struct{}, s.maxStreams)
-	var wg sync.WaitGroup
-	errChan := make(chan error, totalChunks)
-
 	// 统计跳过的块数
 	skippedCount := 0
 	if s.stateManager != nil {
@@ -237,47 +239,38 @@ func (s *QUICFileSender) sendChunksConcurrently(ctx context.Context, file *os.Fi
 	}
 	fmt.Printf("⚡ 开启 %d 个并发流传输...\n\n", s.maxStreams)
 
+	g, ctx := errgroup.WithContext(ctx)
+	g.SetLimit(s.maxStreams)
+
 	for chunkIndex := 0; chunkIndex < totalChunks; chunkIndex++ {
 		// 检查是否已完成（断点续传）
 		if s.stateManager != nil && s.stateManager.IsChunkComplete(chunkIndex) {
 			continue // 跳过已完成的块
 		}
 
-		wg.Add(1)
-		semaphore <- struct{}{} // 获取信号量
-
-		go func(index int) {
-			defer wg.Done()
-			defer func() { <-semaphore }() // 释放信号量
-
-			// 模拟失败（测试用）
+		index := chunkIndex
+		g.Go(func() error {
+			// 模拟失败（测试用）：当已传输比例达到阈值时立即返回错误
 			if s.simulateFailure {
 				transferred := s.bytesTransferred.Load()
 				percentage := float64(transferred) / float64(s.totalBytes)
 				if percentage >= s.failureAt {
-					errChan <- fmt.Errorf("模拟传输中断于 %.0f%%", percentage*100)
-					return
+					return fmt.Errorf("模拟传输中断于 %.0f%%", percentage*100)
 				}
 			}
 
 			if err := s.sendChunk(ctx, file, index); err != nil {
-				errChan <- fmt.Errorf("块 %d 发送失败: %w", index, err)
+				return fmt.Errorf("块 %d 发送失败: %w", index, err)
 			}
-		}(chunkIndex)
+			return nil
+		})
 	}
 
-	// 等待所有协程完成
-	wg.Wait()
-	close(errChan)
-
-	// 检查错误
-	var errs []error
-	for err := range errChan {
-		if err != nil {
-			errs = append(errs, err)
-		}
+	// 等待所有 goroutine，返回第一个错误
+	if err := g.Wait(); err != nil {
+		return err
 	}
-	return errors.Join(errs...)
+	return nil
 }
 
 // sendChunk 发送单个文件块
@@ -337,8 +330,11 @@ func (s *QUICFileSender) monitorProgress(ctx context.Context) {
 			return
 		case <-ticker.C:
 			transferred := s.bytesTransferred.Load()
-			percentage := float64(transferred) / float64(s.totalBytes) * 100
-			
+			percentage := 100.0
+			if s.totalBytes > 0 {
+				percentage = float64(transferred) / float64(s.totalBytes) * 100
+			}
+
 			// 计算瞬时速度
 			delta := transferred - lastBytes
 			speedMBps := float64(delta) / (1024 * 1024)

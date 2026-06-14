@@ -1,12 +1,12 @@
 package discovery
 
 import (
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"net"
-
-	"github.com/zeebo/blake3"
 )
 
 // GeneratePIN 生成一个 6 位数字 PIN 码
@@ -20,15 +20,25 @@ func GeneratePIN() string {
 	return fmt.Sprintf("%06d", pin+100000)
 }
 
-// HashPIN 使用 BLAKE3 对 PIN 码加盐哈希
-func HashPIN(pin string, salt string) string {
-	h := blake3.New()
-	h.Write([]byte(pin + salt))
+// HashPIN 使用 HMAC-SHA256 对 PIN 码做加盐（挑战）哈希
+// challenge 是接收端生成的每次会话不同的挑战值/nonce，防止离线预计算整个 PIN 表
+func HashPIN(pin string, challenge string) string {
+	return HashPINWithChallenge(pin, challenge)
+}
+
+// HashPINWithChallenge 是 HashPIN 的显式别名，语义上强调 challenge/nonce
+func HashPINWithChallenge(pin string, challenge string) string {
+	h := hmac.New(sha256.New, []byte(challenge))
+	h.Write([]byte(pin))
 	return hex.EncodeToString(h.Sum(nil))
 }
 
 // GetLocalIP 获取本机局域网 IP 地址
 func GetLocalIP() (string, error) {
+	if ip, ok := getPreferredLocalIPv4(); ok {
+		return ip.String(), nil
+	}
+
 	conn, err := net.Dial("udp", "8.8.8.8:80")
 	if err != nil {
 		return "", err
@@ -37,6 +47,71 @@ func GetLocalIP() (string, error) {
 
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
 	return localAddr.IP.String(), nil
+}
+
+func getPreferredLocalIPv4() (net.IP, bool) {
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		return nil, false
+	}
+
+	var bestIP net.IP
+	bestScore := -1
+	for _, iface := range interfaces {
+		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
+			continue
+		}
+
+		addrs, err := iface.Addrs()
+		if err != nil {
+			continue
+		}
+
+		for _, addr := range addrs {
+			ipNet, ok := addr.(*net.IPNet)
+			if !ok {
+				continue
+			}
+
+			ip := ipNet.IP.To4()
+			score := scoreLocalIPv4(ip, iface)
+			if score > bestScore {
+				bestScore = score
+				bestIP = append(net.IP(nil), ip...)
+			}
+		}
+	}
+
+	return bestIP, bestScore >= 0
+}
+
+func scoreLocalIPv4(ip net.IP, iface net.Interface) int {
+	if ip == nil || ip.IsLoopback() || ip.IsUnspecified() || ip.IsMulticast() || ip.IsLinkLocalUnicast() {
+		return -1
+	}
+
+	score := 0
+	if ip.IsPrivate() {
+		score += 1000
+	}
+	if !isBenchmarkIPv4(ip) {
+		score += 100
+	}
+	if iface.Flags&net.FlagBroadcast != 0 {
+		score += 30
+	}
+	if iface.Flags&net.FlagPointToPoint == 0 {
+		score += 10
+	}
+	if len(iface.HardwareAddr) > 0 {
+		score += 20
+	}
+	return score
+}
+
+func isBenchmarkIPv4(ip net.IP) bool {
+	ip4 := ip.To4()
+	return ip4 != nil && ip4[0] == 198 && (ip4[1] == 18 || ip4[1] == 19)
 }
 
 // GetSubnetIPs 根据本机 IP 和实际子网掩码生成子网内所有可用主机 IP 地址

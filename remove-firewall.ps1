@@ -18,15 +18,25 @@ if (-not $isAdmin) {
     exit 1
 }
 
-Write-Host "Removing TurboDrop firewall rule..." -ForegroundColor Yellow
+Write-Host "Removing TurboDrop firewall rules..." -ForegroundColor Yellow
 Write-Host ""
 
 try {
-    Remove-NetFirewallRule -DisplayName "TurboDrop UDP" -ErrorAction Stop
-    Write-Host "[SUCCESS] Firewall rule removed successfully!" -ForegroundColor Green
+    $rules = @(
+        "TurboDrop Web UI TCP",
+        "TurboDrop PIN UDP",
+        "TurboDrop QUIC UDP",
+        "TurboDrop UDP"
+    )
+
+    foreach ($rule in $rules) {
+        Remove-NetFirewallRule -DisplayName $rule -ErrorAction SilentlyContinue
+    }
+
+    Write-Host "[SUCCESS] Firewall rules removed successfully!" -ForegroundColor Green
     Write-Host ""
 } catch {
-    Write-Host "[WARNING] Rule not found or removal failed" -ForegroundColor Yellow
+    Write-Host "[WARNING] Rules not found or removal failed" -ForegroundColor Yellow
     Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Yellow
     Write-Host ""
 }

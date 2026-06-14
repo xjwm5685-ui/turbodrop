@@ -33,6 +33,14 @@ func TestConfigStoreSaveLoad(t *testing.T) {
 
 func TestAppConfigValidate(t *testing.T) {
 	cfg := DefaultAppConfig()
+	if cfg.WebHost != "0.0.0.0" {
+		t.Fatalf("DefaultAppConfig().WebHost = %q, want 0.0.0.0", cfg.WebHost)
+	}
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("默认配置应可通过校验: %v", err)
+	}
+
+	cfg = DefaultAppConfig()
 	cfg.WebPort = 0
 	if err := cfg.Validate(); err == nil {
 		t.Fatalf("无效端口应返回错误")

@@ -31,7 +31,8 @@ func GenerateEphemeralTLSConfig() (*tls.Config, string, error) {
 			CommonName:   "turbodrop.local",
 		},
 		NotBefore:             time.Now(),
-		NotAfter:              time.Now().Add(24 * time.Hour), // 24小时有效期
+		// 证书有效期设置为 365 天，避免长时间运行的接收端因证书过期而导致发送端指纹校验失败
+		NotAfter:              time.Now().Add(365 * 24 * time.Hour),
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 		BasicConstraintsValid: true,

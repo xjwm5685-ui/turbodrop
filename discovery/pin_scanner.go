@@ -17,21 +17,27 @@ const (
 	UDPPort = 8899
 	// ScanTimeout 子网扫描的默认超时时间
 	ScanTimeout = 5 * time.Second
-	probeTypeHello = "hello"
-	probeTypeProof = "proof"
+	// challengeTTL 挑战值有效期，超过后拒绝证明
+	challengeTTL = 60 * time.Second
+	// proofTTL 已接受 proof 的保留时间，用于防重放
+	proofTTL = 60 * time.Second
+	probeTypeHello        = "hello"
+	probeTypeProof        = "proof"
 	responseTypeChallenge = "challenge"
 	responseTypeResult    = "result"
 )
 
 // PINReceiver 接收端：生成 PIN 码并监听 UDP 连接
 type PINReceiver struct {
-	device      models.Device
-	pin         string
-	sessionSalt string
-	listener    *net.UDPConn
-	mu          sync.RWMutex
-	ctx         context.Context
-	cancel      context.CancelFunc
+	device             models.Device
+	pin                string
+	sessionSalt        string        // 会话挑战值（challenge nonce，语义上复用 SessionSalt 字段名）
+	sessionSaltCreated time.Time     // 挑战值生成时间，用于过期校验
+	listener           *net.UDPConn
+	mu                 sync.RWMutex
+	ctx                context.Context
+	cancel             context.CancelFunc
+	acceptedProofs     map[string]time.Time // 已接受的 proof 哈希，用于防重放
 }
 
 // NewPINReceiver 创建一个新的接收端实例
@@ -42,8 +48,8 @@ func NewPINReceiver(deviceName string, quicPort int, certFingerprint string) (*P
 	}
 
 	pin := GeneratePIN()
-	sessionSalt := GenerateDeviceID()
-	authToken := GenerateDeviceID() // 一次性认证令牌
+	sessionSalt := GenerateDeviceID() // 256-bit challenge nonce
+	authToken := GenerateDeviceID()   // 一次性认证令牌
 
 	device := models.Device{
 		ID:              GenerateDeviceID(),
@@ -59,11 +65,13 @@ func NewPINReceiver(deviceName string, quicPort int, certFingerprint string) (*P
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &PINReceiver{
-		device:      device,
-		pin:         pin,
-		sessionSalt: sessionSalt,
-		ctx:         ctx,
-		cancel:      cancel,
+		device:             device,
+		pin:                pin,
+		sessionSalt:        sessionSalt,
+		sessionSaltCreated: time.Now(),
+		ctx:                ctx,
+		cancel:             cancel,
+		acceptedProofs:     make(map[string]time.Time),
 	}, nil
 }
 
@@ -142,25 +150,52 @@ func (r *PINReceiver) handleIncoming() {
 					fmt.Printf("❌ 发送会话盐失败: %v\n", err)
 				}
 
-			case probeTypeProof:
-				if probe.PINHash != HashPIN(r.pin, r.sessionSalt) {
-					fmt.Printf("⚠️  收到错误的 PIN 哈希，忽略\n")
-					continue
-				}
+		case probeTypeProof:
+			r.mu.Lock()
+			// 挑战值过期校验
+			if time.Since(r.sessionSaltCreated) > challengeTTL {
+				r.mu.Unlock()
+				fmt.Printf("⚠️  收到过期的 PIN 证明，忽略\n")
+				continue
+			}
 
-				fmt.Printf("✨ PIN 码匹配成功！来自: %s\n", remoteAddr.IP.String())
-				response := models.PINResponse{
-					Type:      responseTypeResult,
-					Device:    r.device,
-					Success:   true,
-					Timestamp: time.Now().Unix(),
+			// 清理过期的防重放缓存
+			now := time.Now()
+			for hash, t := range r.acceptedProofs {
+				if now.Sub(t) > proofTTL {
+					delete(r.acceptedProofs, hash)
 				}
-				if err := r.writeResponse(remoteAddr, response); err != nil {
-					fmt.Printf("❌ 发送响应失败: %v\n", err)
-					continue
-				}
+			}
 
-				fmt.Printf("📤 已向 %s 发送设备信息\n", remoteAddr.IP.String())
+			expected := HashPINWithChallenge(r.pin, r.sessionSalt)
+			if probe.PINHash != expected {
+				r.mu.Unlock()
+				fmt.Printf("⚠️  收到错误的 PIN 哈希，忽略\n")
+				continue
+			}
+
+			// 防重放：同一 proof 不能再次成功
+			if _, ok := r.acceptedProofs[probe.PINHash]; ok {
+				r.mu.Unlock()
+				fmt.Printf("⚠️  收到重放的 PIN 证明，忽略\n")
+				continue
+			}
+			r.acceptedProofs[probe.PINHash] = now
+			r.mu.Unlock()
+
+			fmt.Printf("✨ PIN 码匹配成功！来自: %s\n", remoteAddr.IP.String())
+			response := models.PINResponse{
+				Type:      responseTypeResult,
+				Device:    r.device,
+				Success:   true,
+				Timestamp: time.Now().Unix(),
+			}
+			if err := r.writeResponse(remoteAddr, response); err != nil {
+				fmt.Printf("❌ 发送响应失败: %v\n", err)
+				continue
+			}
+
+			fmt.Printf("📤 已向 %s 发送设备信息\n", remoteAddr.IP.String())
 			}
 		}
 	}
@@ -321,7 +356,7 @@ func (s *PINScanner) probeIP(targetIP string, pin string) {
 
 	proof := models.PINProbe{
 		Type:      probeTypeProof,
-		PINHash:   HashPIN(pin, response.SessionSalt),
+		PINHash:   HashPINWithChallenge(pin, response.SessionSalt),
 		DeviceID:  s.deviceID,
 		Timestamp: time.Now().Unix(),
 	}

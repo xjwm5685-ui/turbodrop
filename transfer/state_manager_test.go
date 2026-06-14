@@ -89,3 +89,64 @@ func TestStateManagerBitsetRoundTrip(t *testing.T) {
 		t.Fatalf("bitset 往返后应保留完成块信息")
 	}
 }
+
+func TestStateManagerGetCompletedBytes(t *testing.T) {
+	metadata := models.FileMetadata{
+		FileName:    "partial.bin",
+		FileSize:    10,
+		ChunkSize:   4,
+		TotalChunks: 3,
+		Blake3Hash:  "hash",
+	}
+
+	sm := NewStateManager("partial.bin", metadata)
+	// 完成第 0 块（4 字节）和第 2 块（最后 2 字节）
+	sm.MarkChunkComplete(0)
+	sm.MarkChunkComplete(2)
+
+	got := sm.GetCompletedBytes(metadata.FileSize, metadata.ChunkSize)
+	want := int64(6)
+	if got != want {
+		t.Fatalf("GetCompletedBytes() = %d, want %d", got, want)
+	}
+}
+
+func TestStateManagerNoSaveAndFlush(t *testing.T) {
+	tempDir := t.TempDir()
+	filePath := filepath.Join(tempDir, "nosave.bin")
+	metadata := models.FileMetadata{
+		FileName:    "nosave.bin",
+		FileSize:    1024,
+		ChunkSize:   256,
+		TotalChunks: 4,
+		Blake3Hash:  "abc",
+	}
+
+	sm := NewStateManager(filePath, metadata)
+	if err := sm.SaveState(); err != nil {
+		t.Fatalf("SaveState() 失败: %v", err)
+	}
+
+	sm.MarkChunkCompleteNoSave(1)
+
+	// 未 Flush 前加载不应看到新变更
+	loadedBefore, err := LoadState(filePath)
+	if err != nil {
+		t.Fatalf("LoadState() 失败: %v", err)
+	}
+	if loadedBefore.IsChunkComplete(1) {
+		t.Fatalf("Flush 前应未保存第 1 块")
+	}
+
+	if err := sm.Flush(); err != nil {
+		t.Fatalf("Flush() 失败: %v", err)
+	}
+
+	loadedAfter, err := LoadState(filePath)
+	if err != nil {
+		t.Fatalf("LoadState() 失败: %v", err)
+	}
+	if !loadedAfter.IsChunkComplete(1) {
+		t.Fatalf("Flush 后应保存第 1 块")
+	}
+}

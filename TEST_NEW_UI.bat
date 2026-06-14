@@ -34,7 +34,8 @@ echo.
 echo 🚀 Starting TurboDrop server...
 echo.
 echo    Web UI will be available at:
-echo    http://127.0.0.1:48080/dashboard.html
+echo    http://localhost:48080/dashboard.html
+echo    http://YOUR-LAN-IP:48080/dashboard.html
 echo.
 echo    Press Ctrl+C to stop the server
 echo.

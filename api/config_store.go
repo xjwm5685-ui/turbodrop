@@ -33,7 +33,7 @@ type ConfigStore struct {
 func DefaultAppConfig() AppConfig {
 	runtimeCfg := transfer.GetRuntimeConfig()
 	return AppConfig{
-		WebHost:              "localhost",
+		WebHost:              "0.0.0.0",
 		WebPort:              48080,
 		DeviceName:           "TurboDrop Device",
 		QUICPort:             9001,

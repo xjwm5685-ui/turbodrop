@@ -6,7 +6,10 @@ Base URL:
 
 ```text
 http://localhost:48080/api/v1
+http://<LAN-IP>:48080/api/v1
 ```
+
+TurboDrop 默认监听 `0.0.0.0:48080`，同一局域网内的设备可以通过启动日志里显示的 LAN URL 访问 Web UI 与 API。
 
 ## Endpoints
 
@@ -143,7 +146,7 @@ Response:
 {
   "success": true,
   "config": {
-    "web_host": "localhost",
+    "web_host": "0.0.0.0",
     "web_port": 48080,
     "device_name": "TurboDrop Device",
     "quic_port": 9001,
@@ -162,7 +165,7 @@ Request body:
 
 ```json
 {
-  "web_host": "localhost",
+  "web_host": "0.0.0.0",
   "web_port": 48080,
   "device_name": "TurboDrop Device",
   "quic_port": 9001,
@@ -179,7 +182,7 @@ Response:
   "success": true,
   "message": "配置已保存",
   "config": {
-    "web_host": "localhost",
+    "web_host": "0.0.0.0",
     "web_port": 48080,
     "device_name": "TurboDrop Device",
     "quic_port": 9001,
@@ -241,7 +244,7 @@ Event types:
 ## Notes
 
 - The API is intended for local network / local host use.
-- HTTP / WebSocket origins are restricted to local loopback origins such as `localhost`, `127.0.0.1`, and `::1`.
+- HTTP / WebSocket origins allow loopback and local-network origins by default. Public internet origins are rejected even when the server listens on `0.0.0.0`.
 - When a send request uses a managed upload file, TurboDrop removes it after the transfer attempt finishes.
 - `web_host` / `web_port` changes are persisted immediately but require an application restart to change the active listener.
 - `device_name`, `quic_port`, `max_concurrent_streams`, and `chunk_size_mb` affect subsequent new tasks after saving.

@@ -2,17 +2,20 @@
 echo TurboDrop Firewall Removal
 echo ========================================
 echo.
-echo This script will remove TurboDrop firewall rule
+echo This script will remove TurboDrop firewall rules
 echo.
 pause
 
 echo.
-echo Removing firewall rule...
+echo Removing firewall rules...
+netsh advfirewall firewall delete rule name="TurboDrop Web UI TCP"
+netsh advfirewall firewall delete rule name="TurboDrop PIN UDP"
+netsh advfirewall firewall delete rule name="TurboDrop QUIC UDP"
 netsh advfirewall firewall delete rule name="TurboDrop UDP"
 
 if %errorlevel% equ 0 (
     echo.
-    echo [SUCCESS] Firewall rule removed successfully!
+    echo [SUCCESS] Firewall rules removed successfully!
     echo.
 ) else (
     echo.

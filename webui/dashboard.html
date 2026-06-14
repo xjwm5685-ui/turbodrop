@@ -6,7 +6,7 @@
     <title>TurboDrop Mission Control</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg: #07111f;
@@ -1202,6 +1202,1061 @@
                 width: 100%;
             }
         }
+        /* TurboDrop Dispatch UI upgrade */
+        :root {
+            --bg: #eef2f0;
+            --bg-elevated: #f8faf7;
+            --bg-soft: #e5ebe8;
+            --panel: #f8faf7;
+            --panel-strong: #111619;
+            --line: #c6d0cb;
+            --line-strong: #111619;
+            --text: #111619;
+            --muted: #65716c;
+            --muted-strong: #303936;
+            --cyan: #00a8a4;
+            --mint: #2cbe73;
+            --gold: #f07c20;
+            --rose: #d8445f;
+            --blue: #2851d8;
+            --shadow: 0 18px 42px rgba(17, 22, 25, 0.12);
+            --radius-xl: 8px;
+            --radius-lg: 8px;
+            --radius-md: 6px;
+            --font-display: 'Chakra Petch', 'Noto Sans SC', sans-serif;
+            --font-mono: 'IBM Plex Mono', 'Consolas', monospace;
+        }
+
+        * {
+            letter-spacing: 0 !important;
+        }
+
+        body {
+            color: var(--text);
+            background:
+                linear-gradient(90deg, rgba(17, 22, 25, 0.035) 1px, transparent 1px),
+                linear-gradient(180deg, rgba(17, 22, 25, 0.035) 1px, transparent 1px),
+                radial-gradient(circle at 92% 10%, rgba(240, 124, 32, 0.18), transparent 26%),
+                radial-gradient(circle at 8% 18%, rgba(0, 168, 164, 0.15), transparent 24%),
+                linear-gradient(135deg, #eef2f0 0%, #f8faf7 48%, #e4ebe7 100%);
+            background-size: 34px 34px, 34px 34px, auto, auto, auto;
+            font-family: var(--font-display);
+        }
+
+        body::before {
+            background:
+                linear-gradient(90deg, transparent 0 49%, rgba(17, 22, 25, 0.08) 50%, transparent 51%),
+                linear-gradient(180deg, transparent 0 49%, rgba(17, 22, 25, 0.08) 50%, transparent 51%);
+            background-size: 180px 180px;
+            mask-image: none;
+            opacity: 0.16;
+        }
+
+        body::after {
+            background:
+                linear-gradient(135deg, transparent 0 65%, rgba(240, 124, 32, 0.1) 65% 65.5%, transparent 65.5%),
+                radial-gradient(rgba(17, 22, 25, 0.18) 0.7px, transparent 0.7px);
+            background-size: 100% 100%, 8px 8px;
+            mix-blend-mode: multiply;
+            opacity: 0.18;
+        }
+
+        .bg-grid {
+            background:
+                linear-gradient(180deg, rgba(17, 22, 25, 0.08), transparent 34%, rgba(0, 168, 164, 0.08));
+            opacity: 0.42;
+            animation: dispatchScan 9s ease-in-out infinite alternate;
+        }
+
+        .particle {
+            width: 12px;
+            height: 2px;
+            border-radius: 0;
+            background: var(--gold);
+            box-shadow: none;
+            opacity: 0.28;
+            animation-name: dispatchParticle;
+        }
+
+        @keyframes dispatchScan {
+            from { transform: translateY(-1.5%); }
+            to { transform: translateY(1.5%); }
+        }
+
+        @keyframes dispatchParticle {
+            0% {
+                transform: translate3d(-8vw, 104vh, 0) scaleX(0.55);
+                opacity: 0;
+            }
+            12%, 82% {
+                opacity: 0.38;
+            }
+            100% {
+                transform: translate3d(108vw, -8vh, 0) scaleX(1.2);
+                opacity: 0;
+            }
+        }
+
+        .app-header {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 16px;
+            padding: 12px 22px;
+            background: rgba(17, 22, 25, 0.96);
+            border-bottom: 3px solid var(--gold);
+            color: #f8faf7;
+            backdrop-filter: blur(16px);
+        }
+
+        .logo {
+            min-width: 0;
+        }
+
+        .logo-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 6px;
+            background:
+                linear-gradient(135deg, #f07c20 0 48%, #111619 48% 52%, #00a8a4 52% 100%);
+            border: 2px solid #f8faf7;
+            box-shadow: none;
+            color: transparent;
+            font-size: 0;
+            position: relative;
+        }
+
+        .logo-icon::after {
+            content: 'TD';
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            color: #f8faf7;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+
+        .logo-text h1 {
+            font-size: 1.55rem;
+            line-height: 1;
+            font-weight: 800;
+        }
+
+        .logo-text p,
+        .connection-indicator,
+        .telemetry-label,
+        .device-stat-label,
+        .card-kicker,
+        .input-label,
+        .progress-label,
+        .progress-stat-label,
+        .speed-chart-title,
+        .history-header,
+        .queue-pill,
+        .field-hint,
+        .history-meta,
+        .log-timestamp {
+            font-family: var(--font-mono);
+            text-transform: uppercase;
+        }
+
+        .logo-text p {
+            margin-top: 4px;
+            color: rgba(248, 250, 247, 0.68);
+            font-size: 0.72rem;
+        }
+
+        .connection-indicator {
+            border-radius: 6px;
+            padding: 10px 12px;
+            background: rgba(248, 250, 247, 0.08);
+            border: 1px solid rgba(248, 250, 247, 0.18);
+            color: #f8faf7;
+            font-size: 0.75rem;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            background: var(--rose);
+        }
+
+        .status-dot.connected {
+            background: var(--mint);
+            animation: squarePulse 1.6s infinite;
+        }
+
+        @keyframes squarePulse {
+            0% { box-shadow: 0 0 0 0 rgba(44, 190, 115, 0.45); }
+            70% { box-shadow: 0 0 0 9px rgba(44, 190, 115, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(44, 190, 115, 0); }
+        }
+
+        .app-main {
+            width: min(1640px, calc(100% - 32px));
+            padding: 18px 0 30px;
+        }
+
+        .surface-card {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            backdrop-filter: none;
+        }
+
+        .surface-card::before,
+        .pin-display::after {
+            display: none;
+        }
+
+        .hero-board {
+            grid-template-columns: minmax(0, 1.35fr) minmax(360px, 0.75fr);
+            gap: 12px;
+            margin-bottom: 12px;
+            align-items: stretch;
+        }
+
+        .hero-primary {
+            min-height: 218px;
+            padding: 26px;
+            background:
+                linear-gradient(90deg, rgba(248, 250, 247, 0.06) 1px, transparent 1px),
+                linear-gradient(180deg, rgba(248, 250, 247, 0.06) 1px, transparent 1px),
+                linear-gradient(135deg, #111619 0%, #1d2428 58%, #111619 100%);
+            background-size: 30px 30px, 30px 30px, auto;
+            color: #f8faf7;
+            border-color: #111619;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(270px, 0.48fr);
+            gap: 24px;
+            align-items: end;
+        }
+
+        .eyebrow {
+            padding: 7px 10px;
+            border-radius: 4px;
+            border-color: rgba(248, 250, 247, 0.24);
+            background: rgba(248, 250, 247, 0.08);
+            color: #f8faf7;
+            font-size: 0.72rem;
+        }
+
+        .hero-title {
+            margin-top: 14px;
+            max-width: none;
+            font-size: 4.85rem;
+            line-height: 0.92;
+            font-weight: 800;
+        }
+
+        .hero-subtitle {
+            margin-top: 12px;
+            max-width: 58ch;
+            color: rgba(248, 250, 247, 0.72);
+            font-size: 1rem;
+            line-height: 1.45;
+        }
+
+        .hero-tags {
+            margin-top: 18px;
+            gap: 8px;
+        }
+
+        .hero-tag {
+            border-radius: 4px;
+            padding: 8px 10px;
+            background: rgba(248, 250, 247, 0.08);
+            border: 1px solid rgba(248, 250, 247, 0.16);
+            color: rgba(248, 250, 247, 0.82);
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+        }
+
+        .hero-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .hero-actions .btn {
+            width: auto;
+            min-height: 42px;
+            padding: 11px 14px;
+        }
+
+        .transfer-rail {
+            position: relative;
+            min-height: 168px;
+            padding: 18px;
+            border: 1px solid rgba(248, 250, 247, 0.18);
+            background:
+                linear-gradient(135deg, rgba(240, 124, 32, 0.22), transparent 44%),
+                rgba(248, 250, 247, 0.06);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .transfer-rail::before {
+            content: '';
+            position: absolute;
+            left: 18px;
+            right: 18px;
+            top: 50%;
+            height: 2px;
+            background: linear-gradient(90deg, var(--gold), var(--cyan), var(--mint));
+            transform: translateY(-50%);
+        }
+
+        .rail-node {
+            position: absolute;
+            width: 82px;
+            height: 58px;
+            display: grid;
+            place-items: center;
+            border: 1px solid rgba(248, 250, 247, 0.24);
+            border-radius: 6px;
+            background: #111619;
+            color: #f8faf7;
+            font-family: var(--font-mono);
+            font-weight: 700;
+            box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.2);
+        }
+
+        .rail-node:nth-child(1) { left: 18px; top: 20px; border-color: var(--gold); }
+        .rail-node:nth-child(2) { left: 50%; top: 50%; transform: translate(-50%, -50%); border-color: var(--cyan); }
+        .rail-node:nth-child(3) { right: 18px; bottom: 20px; border-color: var(--mint); }
+
+        .hero-side {
+            padding: 0;
+            background: transparent;
+            border: 0;
+            box-shadow: none;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            overflow: visible;
+        }
+
+        .telemetry-card {
+            min-height: 102px;
+            padding: 15px;
+            border-radius: 8px;
+            background: #f8faf7;
+            border: 1px solid var(--line);
+            box-shadow: 8px 8px 0 rgba(17, 22, 25, 0.08);
+        }
+
+        .telemetry-card:nth-child(1) { border-top: 4px solid var(--gold); }
+        .telemetry-card:nth-child(2) { border-top: 4px solid var(--cyan); }
+        .telemetry-card:nth-child(3) { border-top: 4px solid var(--blue); }
+        .telemetry-card:nth-child(4) { border-top: 4px solid var(--mint); }
+
+        .telemetry-label,
+        .device-stat-label {
+            color: var(--muted);
+            font-size: 0.7rem;
+        }
+
+        .telemetry-value {
+            font-size: 2.05rem;
+            color: var(--text);
+            font-weight: 800;
+        }
+
+        .telemetry-hint {
+            color: var(--muted);
+            font-size: 0.78rem;
+        }
+
+        .device-panel {
+            margin-bottom: 12px;
+            padding: 0;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .device-stat {
+            padding: 15px 16px;
+            border-radius: 8px;
+            background: #111619;
+            color: #f8faf7;
+            border: 1px solid #111619;
+            box-shadow: none;
+        }
+
+        .device-stat-value {
+            margin-top: 7px;
+            font-size: 1.25rem;
+            color: #f8faf7;
+            font-weight: 700;
+        }
+
+        .tab-nav {
+            position: sticky;
+            top: 74px;
+            z-index: 18;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0;
+            margin-bottom: 12px;
+            padding: 5px;
+            border-radius: 8px;
+            background: #111619;
+            border: 1px solid #111619;
+            box-shadow: 0 14px 30px rgba(17, 22, 25, 0.18);
+        }
+
+        .tab-button {
+            min-height: 50px;
+            padding: 12px 14px;
+            border-radius: 5px;
+            color: rgba(248, 250, 247, 0.7);
+            font-size: 0.96rem;
+            background: transparent;
+        }
+
+        .tab-button:hover {
+            transform: none;
+            background: rgba(248, 250, 247, 0.08);
+            border-color: transparent;
+        }
+
+        .tab-button.active {
+            color: #111619;
+            background: var(--gold);
+            border-color: var(--gold);
+            box-shadow: none;
+        }
+
+        .tab-icon,
+        .btn-icon {
+            display: inline-grid;
+            place-items: center;
+            min-width: 28px;
+            height: 26px;
+            padding: 0 7px;
+            border-radius: 4px;
+            background: rgba(17, 22, 25, 0.12);
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .tab-button:not(.active) .tab-icon {
+            background: rgba(248, 250, 247, 0.12);
+            color: #f8faf7;
+        }
+
+        .mission-layout {
+            grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr);
+            gap: 12px;
+        }
+
+        .stack-column {
+            gap: 12px;
+        }
+
+        .control-card,
+        .brief-card {
+            padding: 22px;
+        }
+
+        .card-kicker {
+            display: inline-flex;
+            margin-bottom: 12px;
+            color: var(--gold);
+            font-size: 0.72rem;
+        }
+
+        .card-title {
+            font-size: 1.7rem;
+            line-height: 1.12;
+            font-weight: 800;
+        }
+
+        .card-description {
+            margin-top: 9px;
+            color: var(--muted-strong);
+            font-size: 0.96rem;
+            line-height: 1.55;
+        }
+
+        .brief-list {
+            gap: 0;
+            margin-top: 14px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .brief-item {
+            align-items: flex-start;
+            gap: 12px;
+            padding: 13px;
+            border-top: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.36);
+        }
+
+        .brief-index {
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            background: #111619;
+            color: #f8faf7;
+        }
+
+        .brief-copy h4 {
+            color: var(--text);
+            font-size: 0.98rem;
+        }
+
+        .brief-copy p {
+            margin-top: 3px;
+            color: var(--muted);
+            font-size: 0.87rem;
+            line-height: 1.45;
+        }
+
+        .radar-scanner {
+            width: min(100%, 310px);
+            margin: 18px auto;
+            filter: none;
+        }
+
+        .radar-disc {
+            fill: #f8faf7;
+            stroke: rgba(17, 22, 25, 0.22);
+        }
+
+        .radar-ring-line,
+        .radar-axis {
+            stroke: rgba(17, 22, 25, 0.16);
+        }
+
+        .radar-sweep-line {
+            stroke: var(--gold);
+            filter: none;
+        }
+
+        .radar-blip {
+            fill: var(--rose);
+        }
+
+        .radar-blip.alt {
+            fill: var(--cyan);
+        }
+
+        .radar-core {
+            stroke: #111619;
+            filter: none;
+        }
+
+        .radar-glow {
+            background: radial-gradient(circle, rgba(240, 124, 32, 0.16), transparent 70%);
+        }
+
+        .pin-display-container {
+            margin-top: 0;
+        }
+
+        .pin-display {
+            padding: 18px;
+            border-radius: 8px;
+            background: #111619;
+            border: 1px solid #111619;
+        }
+
+        .pin-label {
+            color: rgba(248, 250, 247, 0.68);
+            font-size: 0.72rem;
+        }
+
+        .pin-code {
+            color: var(--gold);
+            text-shadow: none;
+            font-size: 3.3rem;
+        }
+
+        .pin-timer {
+            color: rgba(248, 250, 247, 0.72);
+        }
+
+        .queue-pill {
+            display: inline-flex;
+            align-items: center;
+            min-height: 28px;
+            border-radius: 4px;
+            padding: 6px 9px;
+            background: #111619;
+            color: #f8faf7;
+            border: 1px solid #111619;
+            font-size: 0.68rem;
+        }
+
+        .input-grid {
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .input-label {
+            margin-bottom: 8px;
+            color: var(--muted);
+            font-size: 0.72rem;
+        }
+
+        .input-field {
+            min-height: 50px;
+            border-radius: 6px;
+            border: 1px solid var(--line-strong);
+            background: #fffef9;
+            color: var(--text);
+            font-family: var(--font-mono);
+            box-shadow: inset 0 -3px 0 rgba(17, 22, 25, 0.08);
+        }
+
+        .input-field:focus {
+            border-color: var(--gold);
+            box-shadow: 0 0 0 4px rgba(240, 124, 32, 0.16), inset 0 -3px 0 rgba(17, 22, 25, 0.08);
+        }
+
+        .pin-input {
+            font-size: 1.85rem;
+            text-align: center;
+        }
+
+        .dropzone {
+            margin-top: 16px;
+            border-radius: 8px;
+            border: 2px dashed var(--line-strong);
+            background:
+                linear-gradient(90deg, rgba(17, 22, 25, 0.045) 1px, transparent 1px),
+                linear-gradient(180deg, rgba(17, 22, 25, 0.045) 1px, transparent 1px),
+                #f8faf7;
+            background-size: 18px 18px;
+            min-height: 168px;
+        }
+
+        .dropzone:hover,
+        .dropzone.dragover {
+            transform: none;
+            border-color: var(--gold);
+            background-color: #fff7ea;
+        }
+
+        .dropzone-icon {
+            width: 70px;
+            height: 40px;
+            margin: 0 auto 14px;
+            display: grid;
+            place-items: center;
+            border-radius: 5px;
+            background: #111619;
+            color: #f8faf7;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            box-shadow: 6px 6px 0 rgba(17, 22, 25, 0.11);
+        }
+
+        .dropzone-text {
+            color: var(--text);
+            font-size: 1.25rem;
+            font-weight: 800;
+        }
+
+        .dropzone-hint {
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .selected-file-card {
+            margin-top: 12px;
+            padding: 13px;
+            border-radius: 8px;
+            border: 1px solid var(--line);
+            background: #fffef9;
+        }
+
+        .file-icon,
+        .history-icon {
+            width: 38px;
+            height: 38px;
+            flex: 0 0 38px;
+            border-radius: 5px;
+            background: #111619;
+            color: #f8faf7;
+            display: grid;
+            place-items: center;
+            font-family: var(--font-mono);
+            font-size: 0.62rem;
+            font-weight: 700;
+        }
+
+        .file-name {
+            color: var(--text);
+            font-size: 1rem;
+        }
+
+        .file-size {
+            color: var(--muted);
+        }
+
+        .btn {
+            border-radius: 6px;
+            min-height: 52px;
+            font-weight: 800;
+            border: 1px solid #111619;
+            box-shadow: 6px 6px 0 rgba(17, 22, 25, 0.15);
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translate(-1px, -1px);
+            box-shadow: 8px 8px 0 rgba(17, 22, 25, 0.16);
+        }
+
+        .btn-primary {
+            color: #111619;
+            background: var(--gold);
+        }
+
+        .btn-secondary {
+            color: #f8faf7;
+            background: #111619;
+        }
+
+        .loading-spinner {
+            width: 18px;
+            height: 18px;
+            border-color: rgba(17, 22, 25, 0.24);
+            border-top-color: #111619;
+        }
+
+        .path-picker-row {
+            gap: 10px;
+        }
+
+        .path-picker-button {
+            width: auto;
+            flex: 0 0 auto;
+            min-height: 50px;
+        }
+
+        .field-hint {
+            color: var(--muted);
+            font-size: 0.72rem;
+        }
+
+        .progress-section,
+        .speed-chart-container,
+        .transfer-history {
+            border-radius: 8px;
+        }
+
+        .progress-section {
+            padding: 18px;
+            background: #111619;
+            color: #f8faf7;
+        }
+
+        .progress-label,
+        .progress-stat-label {
+            color: rgba(248, 250, 247, 0.62);
+        }
+
+        .progress-percent {
+            color: var(--gold);
+            font-size: 2rem;
+        }
+
+        .progress-bar-track {
+            height: 14px;
+            border-radius: 4px;
+            background: rgba(248, 250, 247, 0.12);
+            border: 1px solid rgba(248, 250, 247, 0.16);
+        }
+
+        .progress-bar-fill {
+            border-radius: 3px;
+            background: linear-gradient(90deg, var(--gold), var(--cyan), var(--mint));
+            box-shadow: none;
+        }
+
+        .progress-stats {
+            gap: 10px;
+        }
+
+        .progress-stat {
+            border-radius: 6px;
+            background: rgba(248, 250, 247, 0.08);
+            border: 1px solid rgba(248, 250, 247, 0.14);
+        }
+
+        .progress-stat-value {
+            color: #f8faf7;
+        }
+
+        .speed-chart-container {
+            padding: 18px;
+            background: #f8faf7;
+        }
+
+        .speed-current {
+            color: var(--cyan);
+            font-family: var(--font-mono);
+            font-size: 1rem;
+        }
+
+        #speedChart {
+            height: 190px;
+            border-radius: 6px;
+            background:
+                linear-gradient(90deg, rgba(17, 22, 25, 0.06) 1px, transparent 1px),
+                linear-gradient(180deg, rgba(17, 22, 25, 0.06) 1px, transparent 1px),
+                #fffef9;
+            background-size: 30px 30px;
+            border: 1px solid var(--line);
+        }
+
+        .board-footer {
+            grid-template-columns: minmax(0, 1.08fr) minmax(380px, 0.92fr);
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .transfer-history,
+        .console-shell {
+            padding: 18px;
+        }
+
+        .history-shell-header,
+        .console-header,
+        .speed-chart-header,
+        .progress-header {
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .history-header {
+            color: var(--muted);
+            font-size: 0.72rem;
+        }
+
+        .history-shell-header h3,
+        .console-header h3,
+        .progress-header h3,
+        .speed-chart-header h3 {
+            font-size: 1.25rem;
+            line-height: 1.1;
+        }
+
+        .history-list {
+            gap: 8px;
+        }
+
+        .history-item {
+            padding: 12px;
+            border-radius: 6px;
+            background: #fffef9;
+            border: 1px solid var(--line);
+        }
+
+        .history-item:hover {
+            transform: none;
+            border-color: var(--line-strong);
+        }
+
+        .history-filename {
+            color: var(--text);
+            font-size: 0.98rem;
+        }
+
+        .history-meta {
+            color: var(--muted);
+            font-size: 0.72rem;
+        }
+
+        .history-status {
+            border-radius: 4px;
+            background: rgba(44, 190, 115, 0.14);
+            color: #167246;
+            font-family: var(--font-mono);
+        }
+
+        .history-status.failed {
+            background: rgba(216, 68, 95, 0.16);
+            color: #9f2c43;
+        }
+
+        .remote-access #settingsTabButton,
+        .remote-access #settingsTab,
+        .remote-access #shareUploadPanel,
+        .remote-access #localPathGroup {
+            display: none !important;
+        }
+
+        .remote-access .tab-nav {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .history-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 34px;
+            padding: 8px 10px;
+            border-radius: 4px;
+            background: var(--gold);
+            border: 1px solid #111619;
+            color: #111619;
+            font-family: var(--font-mono);
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .history-action:hover {
+            filter: brightness(0.96);
+        }
+
+        .console-shell {
+            background: #111619;
+            color: #f8faf7;
+            border-color: #111619;
+        }
+
+        .console-shell .history-header,
+        .console-shell h3 {
+            color: #f8faf7;
+        }
+
+        .console-shell .queue-pill {
+            background: rgba(248, 250, 247, 0.08);
+            border-color: rgba(248, 250, 247, 0.18);
+        }
+
+        .console-log {
+            height: 320px;
+            border-radius: 6px;
+            background: #090c0e;
+            border: 1px solid rgba(248, 250, 247, 0.14);
+            font-family: var(--font-mono);
+        }
+
+        .log-entry {
+            color: rgba(248, 250, 247, 0.78);
+            border-bottom-color: rgba(248, 250, 247, 0.08);
+        }
+
+        .log-entry.error {
+            color: #ff8fa0;
+        }
+
+        .log-timestamp {
+            color: var(--gold);
+        }
+
+        @media (max-width: 1180px) {
+            .hero-primary,
+            .hero-board,
+            .mission-layout,
+            .board-footer {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-title {
+                font-size: 3.7rem;
+            }
+
+            .tab-nav {
+                top: 70px;
+            }
+        }
+
+        @media (max-width: 760px) {
+            .app-header {
+                grid-template-columns: 1fr;
+                position: relative;
+            }
+
+            .app-main {
+                width: min(100% - 20px, 100%);
+                padding-top: 10px;
+            }
+
+            .hero-primary,
+            .hero-side,
+            .device-panel,
+            .tab-nav {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-primary {
+                min-height: auto;
+                padding: 20px;
+            }
+
+            .hero-title {
+                font-size: 2.7rem;
+            }
+
+            .hero-actions,
+            .path-picker-row,
+            .progress-stats {
+                flex-direction: column;
+            }
+
+            .hero-actions .btn,
+            .path-picker-button {
+                width: 100%;
+            }
+
+            .transfer-rail {
+                min-height: 128px;
+            }
+
+            .rail-node {
+                width: 64px;
+                height: 46px;
+                font-size: 0.64rem;
+            }
+
+            .tab-nav {
+                position: relative;
+                top: auto;
+            }
+
+            .control-card,
+            .brief-card,
+            .transfer-history,
+            .console-shell,
+            .speed-chart-container,
+            .progress-section {
+                padding: 16px;
+            }
+
+            .pin-code {
+                font-size: 2.4rem;
+            }
+
+            .history-item {
+                display: grid;
+                grid-template-columns: 38px minmax(0, 1fr);
+                align-items: start;
+                gap: 10px;
+            }
+
+            .history-status {
+                grid-column: 2;
+                justify-self: start;
+                margin-top: 2px;
+            }
+
+            .history-filename {
+                word-break: normal;
+                overflow-wrap: anywhere;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1211,10 +2266,10 @@
     <div class="app-shell">
         <header class="app-header">
             <div class="logo">
-                <div class="logo-icon">⚡</div>
+                <div class="logo-icon">TD</div>
                 <div class="logo-text">
                     <h1>TurboDrop</h1>
-                    <p>Mission Control Interface</p>
+                    <p>Local Transfer Desk</p>
                 </div>
             </div>
             <div class="connection-indicator">
@@ -1226,14 +2281,29 @@
         <main class="app-main">
             <section class="hero-board">
                 <div class="surface-card hero-primary">
-                    <div class="eyebrow">LAN Transfer / QUIC Pipeline</div>
-                    <h2 class="hero-title">为局域网文件传输打造的控制台级界面</h2>
-                    <p class="hero-subtitle">TurboDrop 现在不只是一个测试页面，而是一块实时任务指挥台。接收、发送、队列、历史与配置都集中在一个高密度但清晰的工作流里。</p>
-                    <div class="hero-tags">
-                        <div class="hero-tag">PIN 握手</div>
-                        <div class="hero-tag">多文件队列</div>
-                        <div class="hero-tag">历史持久化</div>
-                        <div class="hero-tag">设置热更新</div>
+                    <div class="hero-copy">
+                        <div class="eyebrow">LOCAL LINK / QUIC DISPATCH</div>
+                        <h2 class="hero-title">TurboDrop</h2>
+                        <p class="hero-subtitle">PIN 配对、本机队列、实时吞吐和持久历史集中在同一张操作台。</p>
+                        <div class="hero-tags">
+                            <div class="hero-tag">PIN-6</div>
+                            <div class="hero-tag">QUEUE</div>
+                            <div class="hero-tag">QUIC</div>
+                            <div class="hero-tag">HISTORY</div>
+                        </div>
+                        <div class="hero-actions">
+                            <button class="btn btn-primary" type="button" onclick="switchTab('receive')">
+                                <span class="btn-icon">RX</span> 接收
+                            </button>
+                            <button class="btn btn-secondary" type="button" onclick="switchTab('send')">
+                                <span class="btn-icon">TX</span> 发送
+                            </button>
+                        </div>
+                    </div>
+                    <div class="transfer-rail" aria-hidden="true">
+                        <div class="rail-node">LOCAL</div>
+                        <div class="rail-node">PIN</div>
+                        <div class="rail-node">QUIC</div>
                     </div>
                 </div>
                 <div class="surface-card hero-side">
@@ -1262,37 +2332,40 @@
 
             <section class="device-panel">
                 <div class="device-stat">
-                    <div class="device-stat-label">⚙️ 设备名称</div>
+                    <div class="device-stat-label">NODE NAME</div>
                     <div class="device-stat-value" id="deviceName">---</div>
                 </div>
                 <div class="device-stat">
-                    <div class="device-stat-label">🌐 IP 地址</div>
+                    <div class="device-stat-label">LAN ADDRESS</div>
                     <div class="device-stat-value" id="deviceIP">---</div>
                 </div>
                 <div class="device-stat">
-                    <div class="device-stat-label">🔌 QUIC 端口</div>
+                    <div class="device-stat-label">QUIC PORT</div>
                     <div class="device-stat-value" id="devicePort">---</div>
                 </div>
             </section>
 
             <nav class="tab-nav">
                 <button class="tab-button active" onclick="switchTab('receive')">
-                    <span class="tab-icon">📥</span> 接收模式
+                    <span class="tab-icon">RX</span> 接收模式
                 </button>
                 <button class="tab-button" onclick="switchTab('send')">
-                    <span class="tab-icon">📤</span> 发送模式
+                    <span class="tab-icon">TX</span> 发送模式
                 </button>
-                <button class="tab-button" onclick="switchTab('settings')">
-                    <span class="tab-icon">⚙️</span> 设置面板
+                <button class="tab-button" onclick="switchTab('bridge')">
+                    <span class="tab-icon">LAN</span> 局域网互传
+                </button>
+                <button class="tab-button" id="settingsTabButton" onclick="switchTab('settings')">
+                    <span class="tab-icon">CFG</span> 设置面板
                 </button>
             </nav>
 
             <section class="tab-content active" id="receiveTab">
                 <div class="mission-layout">
                     <div class="surface-card control-card">
-                        <div class="card-kicker">Receiver / Secure Pairing</div>
-                        <h3 class="card-title">生成 PIN，打开接收窗口</h3>
-                        <p class="card-description">接收模式会启动 PIN 广播与 QUIC 接收器，等待其他设备发现并发起连接。这个视图重点突出“可见的握手过程”和“可读的状态反馈”。</p>
+                        <div class="card-kicker">RX BAY / SECURE PAIRING</div>
+                        <h3 class="card-title">接收舱待命</h3>
+                        <p class="card-description">生成 PIN 后，本机会进入局域网可发现状态，并把后续传输事件写入下方日志与历史。</p>
 
                         <div class="radar-scanner" id="radarScanner">
                             <div class="radar-glow"></div>
@@ -1340,58 +2413,58 @@
                             </div>
                         </div>
 
-                        <div class="queue-pill">任务提示: PIN 会通过广播被局域网设备发现</div>
+                        <div class="queue-pill">PIN BROADCAST READY</div>
 
                         <button class="btn btn-primary" id="startReceiveBtn" onclick="startReceive()" style="margin-top: 20px;">
-                            <span class="btn-icon">🎯</span> 生成 PIN 并开始接收
+                            <span class="btn-icon">RX</span> 生成 PIN 并开始接收
                         </button>
                     </div>
 
                     <div class="stack-column">
                         <div class="surface-card brief-card">
-                            <div class="card-kicker">Receive Flow</div>
-                            <h3 class="card-title">三步完成握手</h3>
+                            <div class="card-kicker">RECEIVE FLOW</div>
+                            <h3 class="card-title">握手阶段</h3>
                             <div class="brief-list">
                                 <div class="brief-item">
                                     <div class="brief-index">1</div>
                                     <div class="brief-copy">
-                                        <h4>初始化接收端</h4>
-                                        <p>系统生成 6 位 PIN，并开始广播设备信息与监听 QUIC 端口。</p>
+                                        <h4>PIN 上线</h4>
+                                        <p>6 位 PIN 与当前 QUIC 端口同步进入广播状态。</p>
                                     </div>
                                 </div>
                                 <div class="brief-item">
                                     <div class="brief-index">2</div>
                                     <div class="brief-copy">
-                                        <h4>等待发送端发现</h4>
-                                        <p>另一台设备输入 PIN 后会自动扫描与配对，雷达动画表示当前处于待命阶段。</p>
+                                        <h4>设备发现</h4>
+                                        <p>发送端完成扫描后，界面会收起雷达并写入事件日志。</p>
                                     </div>
                                 </div>
                                 <div class="brief-item">
                                     <div class="brief-index">3</div>
                                     <div class="brief-copy">
-                                        <h4>持续接收队列</h4>
-                                        <p>接收端支持队列里的后续文件，传输完成后历史会自动写入本地。</p>
+                                        <h4>队列落盘</h4>
+                                        <p>完成项进入本地历史，失败项保留错误信息。</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <div class="surface-card brief-card">
-                            <div class="card-kicker">Runtime Notes</div>
-                            <h3 class="card-title">当前模式特性</h3>
+                            <div class="card-kicker">RUNTIME STATE</div>
+                            <h3 class="card-title">运行状态</h3>
                             <div class="brief-list">
                                 <div class="brief-item">
                                     <div class="brief-index">A</div>
                                     <div class="brief-copy">
-                                        <h4>适合放在大屏侧</h4>
-                                        <p>PIN 与雷达区域已强化视觉层级，便于现场演示或测试联调时快速查看。</p>
+                                        <h4>PIN 计时</h4>
+                                        <p>接收窗口激活后持续显示已运行秒数。</p>
                                     </div>
                                 </div>
                                 <div class="brief-item">
                                     <div class="brief-index">B</div>
                                     <div class="brief-copy">
-                                        <h4>日志仍在底部保留</h4>
-                                        <p>视觉升级不会牺牲排障能力，底部控制台仍保留原始事件轨迹。</p>
+                                        <h4>事件追踪</h4>
+                                        <p>WebSocket、队列、错误与完成事件集中在底部控制台。</p>
                                     </div>
                                 </div>
                             </div>
@@ -1403,9 +2476,9 @@
             <section class="tab-content" id="sendTab">
                 <div class="mission-layout">
                     <div class="surface-card control-card">
-                        <div class="card-kicker">Sender / Queue Orchestration</div>
-                        <h3 class="card-title">批量文件发送，一次完成整条链路</h3>
-                        <p class="card-description">输入 PIN 后，可以拖拽多个文件进入待发送队列，或者直接输入本机路径。浏览器上传与本地路径发送都保留，队列执行状态会在界面顶部和发送按钮上同步变化。</p>
+                        <div class="card-kicker">TX BAY / QUEUE ORCHESTRATION</div>
+                        <h3 class="card-title">发送舱装载</h3>
+                        <p class="card-description">PIN、文件队列、本机路径与 QUIC 发送任务在这里汇合，右侧同步显示队列、进度和吞吐。</p>
 
                         <div class="input-grid">
                             <div class="input-group">
@@ -1421,22 +2494,22 @@
 
                         <div class="dropzone" id="dropzone">
                             <div class="dropzone-content">
-                                <div class="dropzone-icon">📁</div>
-                                <div class="dropzone-text">拖拽文件到这里，或者点击选择文件</div>
-                                <div class="dropzone-hint">支持多文件队列。浏览器会先上传到本机服务，再通过 QUIC 顺序发送。</div>
+                                <div class="dropzone-icon">DROP</div>
+                                <div class="dropzone-text">装载文件队列</div>
+                                <div class="dropzone-hint">多文件 / 本机上传缓存 / QUIC 顺序发送</div>
                             </div>
                             <input type="file" id="fileInput" style="display: none;" multiple>
                         </div>
 
                         <div class="selected-file-card" id="selectedFileCard">
-                            <div class="file-icon">📄</div>
+                            <div class="file-icon">FILE</div>
                             <div class="file-info">
                                 <div class="file-name" id="selectedFileName">未选择文件</div>
                                 <div class="file-size" id="selectedFileSize">请添加一个或多个文件</div>
                             </div>
                         </div>
 
-                        <div class="input-group" style="margin-top: 18px;">
+                        <div class="input-group" id="localPathGroup" style="margin-top: 18px;">
                             <label class="input-label">或直接输入本机文件路径</label>
                             <input type="text"
                                    class="input-field"
@@ -1445,7 +2518,7 @@
                         </div>
 
                         <button class="btn btn-primary" id="startSendBtn" onclick="startSend()" style="margin-top: 20px;">
-                            <span class="btn-icon">🚀</span> 开始传输
+                            <span class="btn-icon">TX</span> 开始传输
                         </button>
                     </div>
 
@@ -1498,12 +2571,70 @@
                 </div>
             </section>
 
+            <section class="tab-content" id="bridgeTab">
+                <div class="mission-layout">
+                    <div class="surface-card control-card">
+                        <div class="card-kicker">LAN BRIDGE / PHONE DESKTOP</div>
+                        <h3 class="card-title">手机和这台电脑互传</h3>
+                        <p class="card-description">手机打开这个页面后，可以直接把手机文件上传到电脑；电脑本机打开 localhost 后，可以把电脑文件加入共享列表给手机下载。</p>
+
+                        <div class="dropzone" id="inboxDropzone">
+                            <div class="dropzone-content">
+                                <div class="dropzone-icon">IN</div>
+                                <div class="dropzone-text">上传到这台电脑</div>
+                                <div class="dropzone-hint">手机相册、文件 App、下载目录里的文件会保存到电脑默认保存位置。</div>
+                            </div>
+                            <input type="file" id="inboxFileInput" style="display: none;" multiple>
+                        </div>
+
+                        <div class="selected-file-card active" id="inboxSummaryCard">
+                            <div class="file-icon">LAN</div>
+                            <div class="file-info">
+                                <div class="file-name" id="inboxSelectedName">等待选择手机文件</div>
+                                <div class="file-size" id="inboxSelectedSize">可一次选择多个文件</div>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-primary" id="uploadInboxBtn" onclick="uploadInboxFiles()" style="margin-top: 20px;">
+                            <span class="btn-icon">UP</span> 上传到电脑
+                        </button>
+                    </div>
+
+                    <div class="stack-column">
+                        <div class="surface-card brief-card" id="shareUploadPanel">
+                            <div class="card-kicker">DESKTOP SHARE</div>
+                            <h3 class="card-title">电脑发给手机</h3>
+                            <p class="card-description">这个区域只在电脑本机 localhost 打开时可用。选择电脑文件后，手机端会在下载列表里看到它。</p>
+                            <div class="dropzone" id="shareDropzone" style="min-height: 132px;">
+                                <div class="dropzone-content">
+                                    <div class="dropzone-icon">OUT</div>
+                                    <div class="dropzone-text">加入手机下载列表</div>
+                                    <div class="dropzone-hint">文件会复制到 TurboDrop 共享缓存，再提供下载链接。</div>
+                                </div>
+                                <input type="file" id="shareFileInput" style="display: none;" multiple>
+                            </div>
+                        </div>
+
+                        <div class="surface-card brief-card transfer-history active" style="display: block;">
+                            <div class="history-shell-header">
+                                <div>
+                                    <div class="history-header">电脑共享文件</div>
+                                    <h3>Phone Downloads</h3>
+                                </div>
+                                <div class="queue-pill" id="sharedSummaryPill">0 项</div>
+                            </div>
+                            <div class="history-list" id="sharedFilesList"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <section class="tab-content" id="settingsTab">
                 <div class="mission-layout">
                     <div class="surface-card control-card">
-                        <div class="card-kicker">Settings / Runtime Configuration</div>
-                        <h3 class="card-title">把服务参数变成可视化配置</h3>
-                        <p class="card-description">设备名、端口、并发流数和分块大小都会写入本地配置文件。除了 Web 监听地址需要重启外，其余设置会对后续新任务即时生效。</p>
+                        <div class="card-kicker">CFG BAY / RUNTIME CONFIGURATION</div>
+                        <h3 class="card-title">配置舱</h3>
+                        <p class="card-description">设备名、端口、并发流数、块大小和保存位置会写入本地配置，后续新任务读取最新参数。</p>
 
                         <div class="input-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
                             <div class="input-group">
@@ -1535,7 +2666,7 @@
                                 <div class="path-picker-row">
                                     <input type="text" class="input-field" id="settingsSaveDir" placeholder="./received_files">
                                     <button type="button" class="btn btn-secondary path-picker-button" id="pickSaveDirBtn" onclick="pickSaveDir()">
-                                        <span class="btn-icon">📂</span> 浏览文件夹
+                                        <span class="btn-icon">DIR</span> 浏览文件夹
                                     </button>
                                 </div>
                                 <div class="field-hint" id="settingsSaveDirHint">点击按钮可直接打开本机目录选择器，也支持继续手动输入路径。</div>
@@ -1543,13 +2674,13 @@
                         </div>
 
                         <button class="btn btn-primary" id="saveSettingsBtn" onclick="saveSettings()" style="margin-top: 22px;">
-                            <span class="btn-icon">💾</span> 保存设置
+                            <span class="btn-icon">CFG</span> 保存设置
                         </button>
                     </div>
 
                     <div class="stack-column">
                         <div class="surface-card brief-card">
-                            <div class="card-kicker">Apply Rules</div>
+                            <div class="card-kicker">APPLY RULES</div>
                             <h3 class="card-title">设置生效说明</h3>
                             <div class="brief-list">
                                 <div class="brief-item">
@@ -1570,7 +2701,7 @@
                         </div>
 
                         <div class="surface-card brief-card">
-                            <div class="card-kicker">Persistence</div>
+                            <div class="card-kicker">PERSISTENCE</div>
                             <h3 class="card-title">配置落盘</h3>
                             <div class="brief-list">
                                 <div class="brief-item">
@@ -1598,7 +2729,7 @@
                     <div class="history-shell-header">
                         <div>
                             <div class="history-header">传输历史</div>
-                            <h3>Persistent History</h3>
+                            <h3>Transfer Ledger</h3>
                         </div>
                         <div class="queue-pill" id="historySummaryPill">0 条</div>
                     </div>
@@ -1609,7 +2740,7 @@
                     <div class="console-header">
                         <div>
                             <div class="history-header">系统日志</div>
-                            <h3>Event Console</h3>
+                            <h3>Live Log</h3>
                         </div>
                         <div class="queue-pill" id="logSummaryPill">等待事件</div>
                     </div>
@@ -1635,21 +2766,42 @@
         let speedChart = null;
         let queueStatus = { total: 0, completed: 0, current: 0 };
         let currentConfig = null;
+        let inboxFiles = [];
         const MAX_SPEED_POINTS = 60;
+        const IS_LOCAL_ACCESS = ['localhost', '127.0.0.1', '::1', '[::1]'].includes(window.location.hostname);
 
         // Initialize on load
         window.addEventListener('DOMContentLoaded', () => {
+            configureAccessMode();
             initParticles();
             loadDeviceInfo();
-            loadSettings();
+            if (IS_LOCAL_ACCESS) {
+                loadSettings();
+            } else {
+                updateConfigState('LAN互传');
+            }
             loadHistory();
             connectWebSocket();
             initDropzone();
+            initLanBridge();
             initSpeedChart();
-            updateOverviewTab('receive');
             updateQueueSummary();
             updateHistorySummary(0);
+            renderQueueList();
+            loadSharedFiles();
+            if (IS_LOCAL_ACCESS) {
+                updateOverviewTab('receive');
+            } else {
+                switchTab('bridge');
+            }
+            window.addEventListener('resize', resizeSpeedChart);
         });
+
+        function configureAccessMode() {
+            if (!IS_LOCAL_ACCESS) {
+                document.body.classList.add('remote-access');
+            }
+        }
 
         // Create particle background
         function initParticles() {
@@ -1741,6 +2893,9 @@
                 case 'queue_status':
                     handleQueueStatus(msg.data);
                     break;
+                case 'shared_files':
+                    loadSharedFiles();
+                    break;
             }
         }
 
@@ -1817,6 +2972,43 @@
             });
         }
 
+        function initLanBridge() {
+            const inboxDropzone = document.getElementById('inboxDropzone');
+            const inboxInput = document.getElementById('inboxFileInput');
+            bindFileDropzone(inboxDropzone, inboxInput, handleInboxFileSelect);
+
+            const shareDropzone = document.getElementById('shareDropzone');
+            const shareInput = document.getElementById('shareFileInput');
+            if (IS_LOCAL_ACCESS && shareDropzone && shareInput) {
+                bindFileDropzone(shareDropzone, shareInput, shareFilesToLan);
+            }
+        }
+
+        function bindFileDropzone(dropzone, fileInput, onSelect) {
+            if (!dropzone || !fileInput) return;
+
+            dropzone.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', (event) => {
+                if (event.target.files.length > 0) {
+                    onSelect(Array.from(event.target.files));
+                }
+            });
+            dropzone.addEventListener('dragover', (event) => {
+                event.preventDefault();
+                dropzone.classList.add('dragover');
+            });
+            dropzone.addEventListener('dragleave', () => {
+                dropzone.classList.remove('dragover');
+            });
+            dropzone.addEventListener('drop', (event) => {
+                event.preventDefault();
+                dropzone.classList.remove('dragover');
+                if (event.dataTransfer.files.length > 0) {
+                    onSelect(Array.from(event.dataTransfer.files));
+                }
+            });
+        }
+
         function handleFileSelect(files) {
             selectedFiles = files;
             uploadedFileMap = new Map();
@@ -1824,6 +3016,14 @@
             renderQueueList();
             document.getElementById('filePathInput').value = '';
             addLog(`已加入 ${files.length} 个文件到发送队列`);
+        }
+
+        function handleInboxFileSelect(files) {
+            inboxFiles = files;
+            const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+            document.getElementById('inboxSelectedName').textContent = files.length === 1 ? files[0].name : `${files.length} 个文件待上传`;
+            document.getElementById('inboxSelectedSize').textContent = `总大小 ${formatFileSize(totalSize)}`;
+            addLog(`已选择 ${files.length} 个文件，准备上传到这台电脑`);
         }
 
         function updateSelectedFileSummary() {
@@ -1856,12 +3056,12 @@
                 const empty = document.createElement('div');
                 empty.className = 'history-item';
                 empty.innerHTML = `
-                    <div class="history-icon">📭</div>
+                    <div class="history-icon">EMPTY</div>
                     <div class="history-info">
                         <div class="history-filename">队列为空</div>
-                        <div class="history-meta">拖拽文件或点击上方区域添加文件</div>
+                        <div class="history-meta">等待文件装载</div>
                     </div>
-                    <div class="history-status">-</div>
+                    <div class="history-status">空</div>
                 `;
                 queueList.appendChild(empty);
                 updateQueueSummary();
@@ -1872,7 +3072,7 @@
                 const item = document.createElement('div');
                 item.className = 'history-item';
                 item.innerHTML = `
-                    <div class="history-icon">📄</div>
+                    <div class="history-icon">F${String(index + 1).padStart(2, '0')}</div>
                     <div class="history-info">
                         <div class="history-filename">${index + 1}. ${file.name}</div>
                         <div class="history-meta">${formatFileSize(file.size)}</div>
@@ -1902,7 +3102,7 @@
             const ctx = canvas.getContext('2d');
             
             canvas.width = canvas.offsetWidth;
-            canvas.height = 180;
+            canvas.height = 190;
             
             speedChart = {
                 canvas: canvas,
@@ -1922,7 +3122,7 @@
                     const chartWidth = width - padding * 2;
                     
                     // Draw grid
-                    ctx.strokeStyle = 'rgba(0, 255, 255, 0.1)';
+                    ctx.strokeStyle = 'rgba(17, 22, 25, 0.1)';
                     ctx.lineWidth = 1;
                     for (let i = 0; i <= 4; i++) {
                         const y = padding + (chartHeight / 4) * i;
@@ -1934,10 +3134,9 @@
                     
                     // Draw speed line
                     if (speedData.length > 1) {
-                        ctx.strokeStyle = '#00ffff';
+                        ctx.strokeStyle = '#f07c20';
                         ctx.lineWidth = 3;
-                        ctx.shadowBlur = 10;
-                        ctx.shadowColor = '#00ffff';
+                        ctx.shadowBlur = 0;
                         ctx.beginPath();
                         
                         speedData.forEach((speed, index) => {
@@ -1955,8 +3154,9 @@
                         
                         // Fill gradient
                         const gradient = ctx.createLinearGradient(0, padding, 0, height - padding);
-                        gradient.addColorStop(0, 'rgba(0, 255, 255, 0.3)');
-                        gradient.addColorStop(1, 'rgba(0, 255, 255, 0)');
+                        gradient.addColorStop(0, 'rgba(240, 124, 32, 0.26)');
+                        gradient.addColorStop(0.58, 'rgba(0, 168, 164, 0.12)');
+                        gradient.addColorStop(1, 'rgba(44, 190, 115, 0)');
                         
                         ctx.lineTo(width - padding, height - padding);
                         ctx.lineTo(padding, height - padding);
@@ -1968,6 +3168,14 @@
                     ctx.shadowBlur = 0;
                 }
             };
+        }
+
+        function resizeSpeedChart() {
+            const canvas = document.getElementById('speedChart');
+            if (!canvas || !speedChart) return;
+            canvas.width = canvas.offsetWidth;
+            canvas.height = 190;
+            speedChart.draw();
         }
 
         function updateSpeedChart(speedMBps) {
@@ -1986,6 +3194,10 @@
 
         // Tab switching
         function switchTab(tab) {
+            if (!IS_LOCAL_ACCESS && tab === 'settings') {
+                tab = 'bridge';
+            }
+
             const tabs = document.querySelectorAll('.tab-button');
             const contents = document.querySelectorAll('.tab-content');
             
@@ -1995,7 +3207,8 @@
             const tabMap = {
                 receive: 0,
                 send: 1,
-                settings: 2
+                bridge: 2,
+                settings: 3
             };
 
             const index = tabMap[tab] ?? 0;
@@ -2020,14 +3233,14 @@
                 const data = await response.json();
                 if (data.success) {
                     addLog('接收端初始化成功');
-                    btn.innerHTML = '<span class="btn-icon">✓</span> 接收端已启动';
+                    btn.innerHTML = '<span class="btn-icon">OK</span> 接收端已启动';
                 } else {
                     throw new Error(data.message || '初始化失败');
                 }
             } catch (error) {
                 addLog('启动接收端失败: ' + error.message, true);
                 btn.disabled = false;
-                btn.innerHTML = '<span class="btn-icon">🎯</span> 生成 PIN 并开始接收';
+                btn.innerHTML = '<span class="btn-icon">RX</span> 生成 PIN 并开始接收';
             }
         }
 
@@ -2083,7 +3296,7 @@
                 const data = await response.json();
                 if (data.success) {
                     addLog(data.message || '发送队列已启动');
-                    btn.innerHTML = '<span class="btn-icon">✓</span> 队列执行中';
+                    btn.innerHTML = '<span class="btn-icon">RUN</span> 队列执行中';
                 } else {
                     throw new Error(data.message || '启动失败');
                 }
@@ -2132,6 +3345,129 @@
             return results;
         }
 
+        async function uploadInboxFiles() {
+            if (inboxFiles.length === 0) {
+                alert('请选择要上传到电脑的文件');
+                return;
+            }
+
+            const btn = document.getElementById('uploadInboxBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span> 正在上传...';
+
+            try {
+                for (const file of inboxFiles) {
+                    addLog(`正在上传到电脑: ${file.name}`);
+                    await uploadFileToEndpoint(file, `${API_BASE}/inbox/upload`);
+                    addLog(`已上传到电脑: ${file.name}`);
+                }
+                inboxFiles = [];
+                document.getElementById('inboxSelectedName').textContent = '上传完成';
+                document.getElementById('inboxSelectedSize').textContent = '可以继续选择文件';
+                loadHistory();
+            } catch (error) {
+                addLog('上传到电脑失败: ' + error.message, true);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span class="btn-icon">UP</span> 上传到电脑';
+            }
+        }
+
+        async function shareFilesToLan(files) {
+            if (!IS_LOCAL_ACCESS) {
+                addLog('共享电脑文件只能在电脑本机 localhost 页面使用', true);
+                return;
+            }
+
+            for (const file of files) {
+                try {
+                    addLog(`正在加入共享列表: ${file.name}`);
+                    await uploadFileToEndpoint(file, `${API_BASE}/shared/upload`);
+                    addLog(`已加入手机下载列表: ${file.name}`);
+                } catch (error) {
+                    addLog('共享文件失败: ' + error.message, true);
+                }
+            }
+            loadSharedFiles();
+        }
+
+        async function uploadFileToEndpoint(file, endpoint) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || data.message || '上传失败');
+            }
+            return data;
+        }
+
+        async function loadSharedFiles() {
+            try {
+                const response = await fetch(`${API_BASE}/shared`);
+                const data = await response.json();
+                if (data.success && Array.isArray(data.items)) {
+                    renderSharedFiles(data.items);
+                }
+            } catch (error) {
+                addLog('读取共享文件列表失败: ' + error.message, true);
+            }
+        }
+
+        function renderSharedFiles(items) {
+            const list = document.getElementById('sharedFilesList');
+            const pill = document.getElementById('sharedSummaryPill');
+            if (!list) return;
+
+            list.innerHTML = '';
+            if (pill) {
+                pill.textContent = `${items.length} 项`;
+            }
+
+            if (items.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'history-item';
+                empty.innerHTML = `
+                    <div class="history-icon">OUT</div>
+                    <div class="history-info">
+                        <div class="history-filename">暂无电脑共享文件</div>
+                        <div class="history-meta">${IS_LOCAL_ACCESS ? '在上方选择电脑文件后，手机可在这里下载' : '等待电脑端加入共享文件'}</div>
+                    </div>
+                    <div class="history-status">空</div>
+                `;
+                list.appendChild(empty);
+                return;
+            }
+
+            items.forEach(item => {
+                const row = document.createElement('div');
+                row.className = 'history-item';
+                row.innerHTML = `
+                    <div class="history-icon">GET</div>
+                    <div class="history-info">
+                        <div class="history-filename">${escapeHTML(item.name || '共享文件')}</div>
+                        <div class="history-meta">${formatFileSize(item.size || 0)} · ${formatHistoryTime(item.modified_at)}</div>
+                    </div>
+                    <a class="history-action" href="${item.download_url}" download>下载</a>
+                `;
+                list.appendChild(row);
+            });
+        }
+
+        function escapeHTML(value) {
+            return String(value).replace(/[&<>"']/g, (char) => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            }[char]));
+        }
+
         function extractFileName(path) {
             return path.split(/[/\\]/).pop() || path;
         }
@@ -2139,7 +3475,7 @@
         function resetSendButton() {
             const btn = document.getElementById('startSendBtn');
             btn.disabled = false;
-            btn.innerHTML = '<span class="btn-icon">🚀</span> 开始传输';
+            btn.innerHTML = '<span class="btn-icon">TX</span> 开始传输';
         }
 
         function handleQueueStatus(data) {
@@ -2155,7 +3491,7 @@
                 addLog(`队列执行完成: ${queueStatus.completed}/${queueStatus.total}`);
             } else if (queueStatus.total > 0) {
                 const btn = document.getElementById('startSendBtn');
-                btn.innerHTML = `<span class="btn-icon">✓</span> 队列 ${queueStatus.completed}/${queueStatus.total}`;
+                btn.innerHTML = `<span class="btn-icon">RUN</span> 队列 ${queueStatus.completed}/${queueStatus.total}`;
             }
         }
 
@@ -2263,7 +3599,7 @@
                 addLog('保存设置失败: ' + error.message, true);
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = '<span class="btn-icon">💾</span> 保存设置';
+                btn.innerHTML = '<span class="btn-icon">CFG</span> 保存设置';
             }
         }
 
@@ -2350,13 +3686,14 @@
             
             const item = document.createElement('div');
             item.className = 'history-item';
+            const isFailed = data.status === 'failed';
             item.innerHTML = `
-                <div class="history-icon">📄</div>
+                <div class="history-icon">${isFailed ? 'ERR' : 'OK'}</div>
                 <div class="history-info">
                     <div class="history-filename">${data.filename || '传输任务'}</div>
                     <div class="history-meta">${data.message || '文件传输完成'} · ${formatHistoryTime(data.completed_at || data.completedAt)}${data.size ? ` · ${formatFileSize(data.size)}` : ''}</div>
                 </div>
-                <div class="history-status">${data.status === 'failed' ? '失败' : '成功'}</div>
+                <div class="history-status ${isFailed ? 'failed' : ''}">${isFailed ? '失败' : '成功'}</div>
             `;
 
             if (prepend) {
@@ -2398,10 +3735,11 @@
 
         function updateOverviewTab(tab) {
             const labelMap = {
-                receive: '接收',
-                send: '发送',
-                settings: '设置'
-            };
+            receive: '接收',
+            send: '发送',
+            bridge: '互传',
+            settings: '设置'
+        };
             document.getElementById('overviewActiveTab').textContent = labelMap[tab] || '接收';
         }
 

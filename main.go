@@ -60,8 +60,14 @@ func main() {
 	fmt.Println("✅ TurboDrop API 服务器已启动")
 	fmt.Println("📖 使用指南:")
 	fmt.Println("   1. 在浏览器中打开 dashboard.html")
-	fmt.Printf("   2. 或访问 http://%s/dashboard.html\n", cfg.ListenAddr())
-	fmt.Println("   3. 使用 Web 界面进行文件传输")
+	if isWildcardWebHost(cfg.WebHost) {
+		fmt.Printf("   2. 本机访问 http://localhost:%d/dashboard.html\n", cfg.WebPort)
+		fmt.Println("   3. 局域网访问请使用启动日志中的 LAN URL")
+		fmt.Println("   4. 使用 Web 界面进行文件传输")
+	} else {
+		fmt.Printf("   2. 或访问 http://%s/dashboard.html\n", cfg.ListenAddr())
+		fmt.Println("   3. 使用 Web 界面进行文件传输")
+	}
 	fmt.Println()
 	fmt.Println("💡 按 Ctrl+C 停止服务器")
 	fmt.Println()
@@ -78,4 +84,8 @@ func main() {
 	if err := server.Shutdown(shutdownCtx); err != nil {
 		fmt.Printf("⚠️  关闭服务器时发生错误: %v\n", err)
 	}
+}
+
+func isWildcardWebHost(host string) bool {
+	return host == "0.0.0.0" || host == "::" || host == "[::]"
 }
